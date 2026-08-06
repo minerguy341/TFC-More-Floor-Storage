@@ -15,6 +15,8 @@ public final class MFSClient
     public MFSClient(ModContainer mod, IEventBus bus)
     {
         bus.addListener(MFSClient::registerRenderers);
+        bus.addListener(PileModels::registerAdditional);
+        bus.addListener(PileModels::onBakingCompleted);
         NeoForge.EVENT_BUS.addListener(MFSKeyHandler::onKeyInput);
     }
 

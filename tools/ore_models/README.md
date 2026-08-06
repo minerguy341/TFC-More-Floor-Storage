@@ -40,4 +40,5 @@ than flat - matching only the mean colour produced dead-looking lumps for the lo
 contrast, about 35 stddev of luma, for an average palette distance of 10 - still far closer than the
 ~25 average (80 worst case, tetrahedrite) you get sampling the icon naively.
 
-The models are not wired into the pile renderer yet; it still draws a generic frustum per lump.
+The models live at `assets/morefloorstorage/models/block/pile/tfc/ore/`, which is where the pile renderer
+looks them up by item id. See the README's "Lump models" section for the convention.

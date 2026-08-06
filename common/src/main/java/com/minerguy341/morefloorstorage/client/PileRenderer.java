@@ -14,18 +14,20 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 /**
  * Draws a pile as the stepped pyramid described by {@link PileLayout}: each item sits at its own spot in
  * its layer, so the heap visibly grows lump by lump as items are added and shrinks again as they are
  * taken off the top.
  * <p>
- * Lumps are real geometry rather than the item's flat inventory icon - see {@link LumpGeometry} - so a
- * pile reads as a heap rather than a stack of paper discs. All the icon is used for is its colour, which
- * means one renderer serves every kind of pile, and any item, including a modded one, gets a lump that
- * looks like itself.
+ * Lumps are real geometry rather than the item's flat inventory icon. An item with a model of its own -
+ * see {@link PileModels} - is drawn with it; anything else falls back to {@link LumpGeometry}'s generic
+ * frustum, textured from the middle of the item's sprite. Either way a pile reads as a heap rather than
+ * a stack of paper discs, and one renderer serves every kind of pile.
  */
 public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
 {
@@ -33,6 +35,7 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
     private static final float MAX_SPIN = 25f;
     /** How far a lump may be tipped off level, in degrees. */
     private static final float MAX_TILT = 6f;
+    private final RandomSource random = RandomSource.create();
 
     @Override
     public void render(PileBlockEntity pile, float partialTick, PoseStack pose, MultiBufferSource buffers, int packedLight, int packedOverlay)
@@ -84,17 +87,27 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
                 z = (1 - quadrantZ) + PileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row);
             }
 
-            final TextureAtlasSprite sprite = Minecraft.getInstance().getItemRenderer()
-                .getModel(stack, level, null, seed + i)
-                .getParticleIcon();
-
             pose.pushPose();
             pose.translate(x, PileLayout.heightOf(layer), z);
             pose.mulPose(Axis.YP.rotationDegrees(jitter(seed, i, 0) * MAX_SPIN));
             pose.mulPose(Axis.XP.rotationDegrees(jitter(seed, i, 1) * MAX_TILT));
             pose.mulPose(Axis.ZP.rotationDegrees(jitter(seed, i, 2) * MAX_TILT));
 
-            LumpGeometry.render(pose, buffer, sprite, packedLight, packedOverlay);
+            final PileModels.Lump lump = PileModels.lookup(stack, random);
+            if (lump != null)
+            {
+                lump.applyTo(pose);
+                Minecraft.getInstance().getBlockRenderer().getModelRenderer().tesselateWithoutAO(
+                    level, lump.model(), pile.getBlockState(), pos, pose, buffer, false,
+                    random, seed + i, packedOverlay, ModelData.EMPTY, RenderType.cutout());
+            }
+            else
+            {
+                final TextureAtlasSprite sprite = Minecraft.getInstance().getItemRenderer()
+                    .getModel(stack, level, null, seed + i)
+                    .getParticleIcon();
+                LumpGeometry.render(pose, buffer, sprite, packedLight, packedOverlay);
+            }
 
             pose.popPose();
         }

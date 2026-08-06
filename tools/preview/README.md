@@ -19,7 +19,8 @@ for m in pile_half pile_full pile_merged; do
 done
 ```
 
-`clay_lump.pxg` is a stand-in for whatever clay item is in the pile; in game the lump is
+`make_ore_pile.py` previews a pile built from per-item lump models, applying the same transform chain as
+the renderer. `clay_lump.pxg` is a stand-in for whatever clay item is in the pile; in game the lump is
 textured from the middle of that item's own sprite.
 
 Two things the preview cannot show, both because model elements are axis-aligned boxes:

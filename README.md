@@ -114,6 +114,25 @@ ask to lean or pick up but never dictate what it gets.
   `MFSInteractions.PILE_KINDS`. Everything else - layout, merging, rendering, pickup - is shared.
 - `#morefloorstorage:leanable` - what can be leaned against a wall. Defaults to the `#c:tools` family.
 
+### Lump models
+
+By default a lump in a pile is a generic frustum textured from the middle of the item's sprite. Give an
+item real geometry by putting a block model at
+`assets/morefloorstorage/models/block/pile/<item namespace>/<item path>.json` - so
+`tfc:ore/rich_native_copper` picks up
+`assets/morefloorstorage/models/block/pile/tfc/ore/rich_native_copper.json`. Everything under that
+directory is loaded, from this mod or from a resource pack, so adding or replacing one needs no code and
+no registration; a pack that writes to the same path overrides ours.
+
+The model is measured, not assumed. It is seated by its own bounding box - centred on its spot in the
+pile and standing on the layer - so it need not be centred in its block or built at any particular size.
+A model six pixels across renders the same width as the default frustum, a bigger one renders bigger, and
+only a model wide enough to crowd its neighbours gets shrunk to fit. That means the size difference
+between a poor and a rich chunk survives into the pile.
+
+36 models ship for TFC's graded ores; see [tools/ore_models](tools/ore_models) for how they were built,
+and `tools/preview/make_ore_pile.py` to preview a pile of any of them outside the game.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
