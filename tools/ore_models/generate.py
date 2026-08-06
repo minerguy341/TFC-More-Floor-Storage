@@ -37,7 +37,13 @@ CONTRAST_BONUS = 2.0
 GRADE_YIELD = {"small": 10, "poor": 15, "normal": 25, "rich": 35}
 
 # A chunk this tall stops reading as something lying on the ground
-MAX_BOX_HEIGHT = 6
+MAX_HEIGHT = 5
+# Keep the cluster clear of the block edges, so neighbouring piles do not touch
+BORDER = 5
+# How much a candidate voxel is rewarded for having neighbours, against how much it is penalised
+# for being high up. Spreading has to beat stacking or a small ore just grows into a cube.
+SPREAD = 1.0
+HEIGHT_PENALTY = 0.5
 
 
 def saturation(colour):
@@ -73,31 +79,88 @@ def ranked_windows(sprite, width, height, reference_mean, reference_saturation):
     return [(x, y) for _, x, y in candidates[:WINDOW_CHOICES]]
 
 
+def voxelise(elements):
+    """The unit cells a set of boxes occupies. A set, so overlapping boxes are counted once."""
+    cells = set()
+    for element in elements:
+        (x0, y0, z0), (x1, y1, z1) = element["from"], element["to"]
+        for x in range(int(x0), int(x1)):
+            for y in range(int(y0), int(y1)):
+                for z in range(int(z0), int(z1)):
+                    cells.add((x, y, z))
+    return cells
+
+
+def scatter(cell):
+    """A stable pseudo-random value per cell, to keep growth from looking machined."""
+    h = (cell[0] * 73856093) ^ (cell[1] * 19349663) ^ (cell[2] * 83492791)
+    return ((h ^ (h >> 13)) & 0xFFFF) / 65535.0
+
+
+def grow(cells, target):
+    """Add voxels around the cluster until it holds `target` of them.
+
+    Candidates must sit on something, so nothing floats, and are scored to spread the chunk over
+    the ground before piling it up - otherwise an ore with a small footprint, like sphalerite,
+    just grows into a cube.
+    """
+    cells = set(cells)
+    while len(cells) < target:
+        frontier = {}
+        for (x, y, z) in cells:
+            for dx, dy, dz in ((1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1), (0, 1, 0)):
+                candidate = (x + dx, y + dy, z + dz)
+                if candidate in cells or candidate in frontier:
+                    continue
+                cx, cy, cz = candidate
+                if cy < 0 or cy > MAX_HEIGHT - 1 or not (BORDER <= cx < 16 - BORDER and BORDER <= cz < 16 - BORDER):
+                    continue
+                if cy > 0 and (cx, cy - 1, cz) not in cells:
+                    continue  # no floating lumps
+                neighbours = sum(((cx + ax, cy + ay, cz + az) in cells)
+                                 for ax, ay, az in ((1, 0, 0), (-1, 0, 0), (0, 1, 0),
+                                                    (0, -1, 0), (0, 0, 1), (0, 0, -1)))
+                frontier[candidate] = SPREAD * neighbours - HEIGHT_PENALTY * cy + scatter(candidate)
+        if not frontier:
+            break
+        cells.add(max(frontier, key=lambda c: (frontier[c], c)))
+    return cells
+
+
+def to_boxes(cells):
+    """Greedily merge voxels back into as few boxes as possible. The result never overlaps, so the
+    model's summed box volume is exactly the voxel count."""
+    remaining = set(cells)
+    boxes = []
+    while remaining:
+        x0, y0, z0 = min(remaining, key=lambda c: (c[1], c[2], c[0]))
+        x1 = x0
+        while (x1 + 1, y0, z0) in remaining:
+            x1 += 1
+        z1 = z0
+        while all((x, y0, z1 + 1) in remaining for x in range(x0, x1 + 1)):
+            z1 += 1
+        y1 = y0
+        while all((x, y1 + 1, z) in remaining
+                  for x in range(x0, x1 + 1) for z in range(z0, z1 + 1)):
+            y1 += 1
+        for x in range(x0, x1 + 1):
+            for y in range(y0, y1 + 1):
+                for z in range(z0, z1 + 1):
+                    remaining.discard((x, y, z))
+        boxes.append({"from": [x0, y0, z0], "to": [x1 + 1, y1 + 1, z1 + 1]})
+    return boxes
+
+
 def graded_geometry(elements, grade):
-    """The ore's own boxes, thickened until the chunk holds this grade's share of metal."""
-    target = sum(volume(e) for e in elements) * GRADE_YIELD[grade] / GRADE_YIELD["small"]
-    grown = [{"from": list(e["from"]), "to": list(e["to"]),
-              "faces": {d: dict(f) for d, f in e.get("faces", {}).items()}} for e in elements]
-    # Biggest footprint first, so the bulk of the chunk rises and the chips stay chips
-    order = sorted(range(len(grown)), key=lambda i: -footprint(grown[i]))
-    while sum(volume(e) for e in grown) < target:
-        raised = False
-        for i in order:
-            if sum(volume(e) for e in grown) >= target:
-                break
-            box = grown[i]
-            if box["to"][1] - box["from"][1] >= MAX_BOX_HEIGHT:
-                continue
-            box["to"][1] += 1
-            raised = True
-        if not raised:
-            break  # everything is as tall as it is allowed to get
-    return grown
-
-
-def footprint(element):
-    return ((element["to"][0] - element["from"][0])
-            * (element["to"][2] - element["from"][2]))
+    """The ore's own cluster, grown on a voxel grid until it holds this grade's share of metal."""
+    native = voxelise(elements)
+    target = int(len(native) * GRADE_YIELD[grade] / GRADE_YIELD["small"] + 0.5)
+    boxes = to_boxes(grow(native, target))
+    faces = {d: {} for d in ("down", "up", "north", "south", "west", "east")}
+    for box in boxes:
+        box["faces"] = {d: dict(faces[d]) for d in faces}
+    return boxes
 
 
 def volume(element):
@@ -123,8 +186,6 @@ def build(ore, grade, native_model, sprite, reference):
     for element in elements:
         faces = {}
         for direction in ("down", "up", "north", "south", "west", "east"):
-            if direction not in element.get("faces", {}):
-                continue
             width, height = face_size(element, direction)
             key = (int(round(width)), int(round(height)))
             if key not in window_cache:

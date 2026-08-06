@@ -8,13 +8,22 @@ have only a flat `item/generated` icon. These scripts build the missing 36 model
 - `analyse.py` measures what each native ground model actually puts on screen. A groundcover model
   does not show its whole sprite: every face carries a hand-picked UV rect, so weighting each rect
   by the area of the face carrying it gives the palette the model really reads as.
-- `generate.py` builds a model per graded item. Geometry is that ore's own groundcover boxes, so
-  each ore keeps its native silhouette, grown by grade. How much it grows is not invented: TFC's own
-  heating recipes melt these items to 10 / 15 / 25 / 35 mB for small / poor / normal / rich,
-  identically for all twelve ores, so a grade's model is built to that many times the small piece's
-  voxel count. Growth thickens the native boxes upward, biggest footprint first, which piles the
-  chunk into a mound rather than a slab. Because a box can only grow a whole pixel at a time the
-  targets are met or slightly overshot, never undershot - 1.5x to 1.8x for poor, and so on.
+- `generate.py` builds a model per graded item. How much bigger each grade is is not invented:
+  TFC's own heating recipes melt these items to 10 / 15 / 25 / 35 mB for small / poor / normal /
+  rich, identically for all twelve ores, so a grade's model holds that many times the small piece's
+  voxels - 1.5x, 2.5x and 3.5x.
+
+  Growth happens on a voxel grid rather than by resizing boxes. The native cluster is voxelised,
+  then voxels are added one at a time around it - each candidate must rest on something, so nothing
+  floats - and scored to spread the chunk over the ground before piling it up. The result is merged
+  back into non-overlapping boxes by greedy meshing. Two things fall out of working in voxels: the
+  targets are hit exactly rather than overshot, and the model's summed box volume *is* its voxel
+  count, with no double counting where boxes would otherwise engulf each other.
+
+  `SPREAD` against `HEIGHT_PENALTY` is what stops an ore with a small footprint, like sphalerite,
+  growing into a plain cube; `BORDER` keeps the cluster clear of the block edges. The current
+  numbers put a rich chunk at roughly 6 wide by 3 tall.
+
   UVs are chosen rather than copied: every fully-opaque window of the required size in the graded
   sprite is scored against the native palette, and the best few are rotated between so faces vary.
 
