@@ -1,0 +1,14 @@
+{
+  "block.morefloorstorage.clay_pile": "Clay Pile",
+  "block.morefloorstorage.leaning_tool": "Leaning Tools",
+
+  "morefloorstorage.configuration.title": "More Floor Storage",
+  "morefloorstorage.configuration.clay_piles": "Clay Piles",
+  "morefloorstorage.configuration.tool_leaning": "Tool Leaning",
+  "morefloorstorage.configuration.floor_storage": "Floor Storage",
+  "morefloorstorage.configuration.enableClayPiles": "Enable Clay Piles",
+  "morefloorstorage.configuration.enableToolLeaning": "Enable Tool Leaning",
+  "morefloorstorage.configuration.enableSneakPickup": "Enable Sneak Pickup",
+  "morefloorstorage.configuration.sneakPickupWholeStack": "Sneak Pickup Takes Whole Pile",
+  "morefloorstorage.configuration.interactionRange": "Interaction Range"
+}

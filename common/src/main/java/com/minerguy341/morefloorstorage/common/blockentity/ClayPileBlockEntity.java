@@ -1,0 +1,129 @@
+package com.minerguy341.morefloorstorage.common.blockentity;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import com.minerguy341.morefloorstorage.common.block.ClayPileBlock;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
+
+/**
+ * Holds the individual items making up a clay pile. Every entry is a stack of exactly one, in the
+ * order it was placed, so that the top of the pile is the last thing added - the same contract
+ * TerraFirmaCraft's ingot piles use.
+ */
+public class ClayPileBlockEntity extends SyncedBlockEntity
+{
+    private final List<ItemStack> stacks = new ArrayList<>();
+
+    public ClayPileBlockEntity(BlockPos pos, BlockState state)
+    {
+        super(MFSBlockEntities.CLAY_PILE.get(), pos, state);
+    }
+
+    /**
+     * @return {@code true} if the item was accepted into the pile.
+     */
+    public boolean addItem(ItemStack stack)
+    {
+        if (stack.isEmpty() || stacks.size() >= ClayPileBlock.MAX_ITEMS)
+        {
+            return false;
+        }
+        stacks.add(stack.copyWithCount(1));
+        markForSync();
+        return true;
+    }
+
+    /**
+     * Removes and returns the item at the top of the pile, or an empty stack if there is none.
+     */
+    public ItemStack removeTop()
+    {
+        if (stacks.isEmpty())
+        {
+            return ItemStack.EMPTY;
+        }
+        final ItemStack stack = stacks.remove(stacks.size() - 1);
+        markForSync();
+        return stack;
+    }
+
+    public void removeAll(Consumer<ItemStack> consumer)
+    {
+        for (ItemStack stack : stacks)
+        {
+            consumer.accept(stack);
+        }
+        stacks.clear();
+        markForSync();
+    }
+
+    public int size()
+    {
+        return stacks.size();
+    }
+
+    public List<ItemStack> getStacks()
+    {
+        return Collections.unmodifiableList(stacks);
+    }
+
+    public ItemStack getPickedItemStack()
+    {
+        return stacks.isEmpty() ? ItemStack.EMPTY : stacks.get(stacks.size() - 1).copy();
+    }
+
+    /**
+     * Summarises the pile as "{@code 12x Clay}" lines, one per distinct item, for waila-style tooltips.
+     */
+    public void fillTooltip(Consumer<Component> tooltip)
+    {
+        final Map<Item, int[]> counts = new LinkedHashMap<>(); // Deterministic iteration order
+        for (ItemStack stack : stacks)
+        {
+            counts.computeIfAbsent(stack.getItem(), key -> new int[1])[0]++;
+        }
+        counts.forEach((item, count) -> tooltip.accept(
+            Component.literal(count[0] + "x ").append(item.getDescription())));
+    }
+
+    @Override
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries)
+    {
+        final ListTag list = new ListTag();
+        for (ItemStack stack : stacks)
+        {
+            list.add(stack.save(registries));
+        }
+        tag.put("stacks", list);
+        super.saveAdditional(tag, registries);
+    }
+
+    @Override
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries)
+    {
+        stacks.clear();
+        final ListTag list = tag.getList("stacks", Tag.TAG_COMPOUND);
+        for (int i = 0; i < list.size(); i++)
+        {
+            final ItemStack stack = ItemStack.parseOptional(registries, list.getCompound(i));
+            if (!stack.isEmpty())
+            {
+                stacks.add(stack);
+            }
+        }
+        super.loadAdditional(tag, registries);
+    }
+}

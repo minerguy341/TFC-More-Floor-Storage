@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:clay_ball",
+    { "id": "tfc:fire_clay", "required": false },
+    { "id": "tfc:kaolin_clay", "required": false },
+    { "id": "tfc:ceramic/unfired_brick", "required": false },
+    { "id": "#tfc:clay_knapping", "required": false },
+    { "id": "#tfc:fire_clay_knapping", "required": false }
+  ]
+}

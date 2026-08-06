@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "#c:tools", "required": false },
+    { "id": "#c:tools/axe", "required": false },
+    { "id": "#c:tools/hoe", "required": false },
+    { "id": "#c:tools/pickaxe", "required": false },
+    { "id": "#c:tools/shovel", "required": false },
+    { "id": "#c:tools/shear", "required": false },
+    { "id": "#c:tools/hammer", "required": false },
+    { "id": "#c:tools/saw", "required": false },
+    { "id": "#c:tools/scythe", "required": false },
+    { "id": "#c:tools/chisel", "required": false },
+    { "id": "#c:tools/propick", "required": false },
+    { "id": "#c:tools/knife", "required": false },
+    { "id": "#c:tools/spear", "required": false },
+    { "id": "#c:tools/fishing_rod", "required": false }
+  ]
+}
