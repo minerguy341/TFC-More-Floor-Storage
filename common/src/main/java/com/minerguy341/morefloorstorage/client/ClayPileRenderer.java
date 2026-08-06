@@ -6,13 +6,14 @@ import com.minerguy341.morefloorstorage.common.block.ClayPileBlock;
 import com.minerguy341.morefloorstorage.common.block.ClayPileLayout;
 import com.minerguy341.morefloorstorage.common.blockentity.ClayPileBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -20,14 +21,17 @@ import net.minecraft.world.level.Level;
  * Draws a clay pile as the stepped pyramid described by {@link ClayPileLayout}: each item sits at its own
  * spot in its layer, so the heap visibly grows lump by lump as clay is added and shrinks again as it is
  * taken off the top.
+ * <p>
+ * Lumps are real geometry rather than the item's flat inventory icon - see {@link ClayLumpGeometry} - so
+ * a pile reads as a heap of clay rather than a stack of paper discs. All the icon is used for is its
+ * colour, which means any clay-type item, including a modded one, gets a lump that looks like itself.
  */
 public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity>
 {
-    /** Size of one item relative to a full block. */
-    private static final float ITEM_SCALE = 0.25f;
-
-    /** How far an item may be tilted or spun from its grid position, to break up the rows. */
-    private static final float MAX_TILT = 9f;
+    /** How far a lump may be spun about its own base, in degrees, to break up the grid. */
+    private static final float MAX_SPIN = 25f;
+    /** How far a lump may be tipped off level, in degrees. */
+    private static final float MAX_TILT = 6f;
 
     @Override
     public void render(ClayPileBlockEntity pile, float partialTick, PoseStack pose, MultiBufferSource buffers, int packedLight, int packedOverlay)
@@ -41,6 +45,7 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
         final List<ItemStack> stacks = pile.getStacks();
         final BlockPos pos = pile.getBlockPos();
         final int seed = pos.hashCode();
+        final VertexConsumer buffer = buffers.getBuffer(RenderType.cutout());
 
         // When four full piles merge, each one draws its own 64 items as one quadrant of a pyramid
         // spanning the whole two by two. Doubling a layer's grid quadruples it, so the counts line up
@@ -78,23 +83,17 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
                 z = (1 - quadrantZ) + ClayPileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row);
             }
 
-            // Flat item sprites lie down like lumps of clay; genuinely 3D models keep their own shape
-            final BakedModel model = Minecraft.getInstance().getItemRenderer().getModel(stack, level, null, seed + i);
-            final boolean flatSprite = !model.isGui3d();
+            final TextureAtlasSprite sprite = Minecraft.getInstance().getItemRenderer()
+                .getModel(stack, level, null, seed + i)
+                .getParticleIcon();
 
             pose.pushPose();
-            // The tiny per-item lift keeps overlapping sprites within a layer from z-fighting
-            pose.translate(x, ClayPileLayout.heightOf(layer) + i * 0.0002f, z);
-            pose.mulPose(Axis.YP.rotationDegrees(jitter(seed, i, 0) * 18f));
-            pose.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
-            if (flatSprite)
-            {
-                pose.mulPose(Axis.XP.rotationDegrees(90f + jitter(seed, i, 1) * MAX_TILT));
-                pose.mulPose(Axis.ZP.rotationDegrees(jitter(seed, i, 2) * 180f));
-            }
+            pose.translate(x, ClayPileLayout.heightOf(layer), z);
+            pose.mulPose(Axis.YP.rotationDegrees(jitter(seed, i, 0) * MAX_SPIN));
+            pose.mulPose(Axis.XP.rotationDegrees(jitter(seed, i, 1) * MAX_TILT));
+            pose.mulPose(Axis.ZP.rotationDegrees(jitter(seed, i, 2) * MAX_TILT));
 
-            Minecraft.getInstance().getItemRenderer().renderStatic(
-                stack, ItemDisplayContext.FIXED, packedLight, packedOverlay, pose, buffers, level, seed + i);
+            ClayLumpGeometry.render(pose, buffer, sprite, packedLight, packedOverlay);
 
             pose.popPose();
         }

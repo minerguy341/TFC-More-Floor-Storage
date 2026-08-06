@@ -37,11 +37,16 @@ public final class ClayPileLayout
     /** The same, for a merged pyramid, measured across the whole two by two. */
     private static final float[] MERGED_SPAN = {1.75f, 1.25f, 0.78f, 0.78f, 0.44f, 0.16f};
 
-    /** Height at which each layer's items sit, in blocks. Merged pyramids keep the same heights. */
-    private static final float[] HEIGHT = {0.03f, 0.17f, 0.31f, 0.45f, 0.59f, 0.73f};
+    /**
+     * Height at which each layer's lumps stand, in blocks. Merged pyramids keep the same heights.
+     * <p>
+     * Spaced slightly closer than a lump is tall, so each layer settles into the one below rather than
+     * hovering over it, and the top of the sixth layer comes out level with the top of the block.
+     */
+    private static final float[] HEIGHT = {0.0f, 0.155f, 0.31f, 0.465f, 0.62f, 0.775f};
 
     /** Top of each layer's collision box, in pixels. Layer {@code n} starts where layer {@code n - 1} ends. */
-    private static final int[] TOP = {3, 5, 7, 10, 12, 14};
+    private static final int[] TOP = {3, 6, 8, 11, 13, 16};
 
     /** How far each layer is pulled in from the edge of one block, in pixels. */
     private static final int[] INSET = {0, 2, 3, 3, 4, 6};

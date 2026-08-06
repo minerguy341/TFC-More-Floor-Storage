@@ -1,0 +1,16 @@
+size: 8x8
+[palette]
+. = none            # transparent - rounds the lump's corners
+l = B8BDCB          # highlight, upper left
+m = A4A9B8          # clay base
+d = 9095A4          # shade
+k = 7C8190          # deep shade, lower right
+[grid]
+..lmmd..
+.lllmdd.
+llmmmddk
+lmmmmddk
+mmmmdddk
+mmmddkkk
+.mmdkkk.
+..mddk..
