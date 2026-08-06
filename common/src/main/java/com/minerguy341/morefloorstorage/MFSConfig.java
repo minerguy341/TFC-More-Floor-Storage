@@ -18,6 +18,7 @@ public final class MFSConfig
     public static final class Server
     {
         public final ModConfigSpec.BooleanValue enableClayPiles;
+        public final ModConfigSpec.BooleanValue enableOrePiles;
         public final ModConfigSpec.BooleanValue enableToolLeaning;
         public final ModConfigSpec.BooleanValue enableSneakPickup;
         public final ModConfigSpec.BooleanValue sneakPickupWholeStack;
@@ -25,10 +26,14 @@ public final class MFSConfig
 
         private Server(ModConfigSpec.Builder builder)
         {
-            builder.push("clay_piles");
+            builder.push("piles");
             enableClayPiles = builder
                 .comment("If clay-type items can be stacked into clay piles on the ground, the way ingots stack into ingot piles.")
                 .define("enableClayPiles", true);
+            enableOrePiles = builder
+                .comment("If ore can be stacked into ore piles on the ground. Covers TerraFirmaCraft's small native",
+                    "deposits and its poor, normal and rich graded ores.")
+                .define("enableOrePiles", true);
             builder.pop();
 
             builder.push("tool_leaning");

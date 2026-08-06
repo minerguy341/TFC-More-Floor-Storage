@@ -1,15 +1,15 @@
-"""Emit Minecraft models of a clay pile straight from ClayPileLayout's numbers.
+"""Emit Minecraft models of a clay pile straight from PileLayout's numbers.
 
 Each item the block entity holds becomes one lump, positioned by the same arithmetic
-ClayPileRenderer uses and spun by the same jitter hash, so what these render is what
+PileRenderer uses and spun by the same jitter hash, so what these render is what
 the game will draw. Two departures, both forced by the model format being boxes only:
-ClayLumpGeometry's frustum is approximated by two stacked boxes, and the small tilt
+LumpGeometry's frustum is approximated by two stacked boxes, and the small tilt
 off level is dropped because an element may only rotate about one axis.
 """
 import json
 import sys
 
-# --- mirrors common/.../ClayPileLayout.java -----------------------------------
+# --- mirrors common/.../PileLayout.java -----------------------------------
 GRID = [5, 4, 3, 3, 2, 1]
 CUMULATIVE = [25, 41, 50, 59, 63, 64]
 SPAN = [0.75, 0.56, 0.38, 0.38, 0.20, 0.0]
@@ -17,13 +17,13 @@ MERGED_SPAN = [1.75, 1.25, 0.78, 0.78, 0.44, 0.16]
 HEIGHT = [0.0, 0.155, 0.31, 0.465, 0.62, 0.775]
 MAX_ITEMS = CUMULATIVE[-1]
 
-# --- mirrors common/.../ClayLumpGeometry.java ---------------------------------
+# --- mirrors common/.../LumpGeometry.java ---------------------------------
 LUMP_WIDTH = 0.25
 LUMP_HEIGHT = 0.1875
 LUMP_TAPER = 0.05
 UV_MIN, UV_MAX = 0.25, 0.75
 
-MAX_SPIN = 25.0  # ClayPileRenderer.MAX_SPIN
+MAX_SPIN = 25.0  # PileRenderer.MAX_SPIN
 
 
 def layer_of(index):
@@ -49,7 +49,7 @@ def offset_in_merged_layer(layer, coordinate):
 
 
 def jitter(seed, index, channel):
-    """ClayPileRenderer.jitter, in 32-bit unsigned arithmetic to match Java's int."""
+    """PileRenderer.jitter, in 32-bit unsigned arithmetic to match Java's int."""
     mask = 0xFFFFFFFF
     h = (seed * 31 + index) & mask
     h = (h * 31 + channel) & mask
@@ -65,7 +65,7 @@ def block_pos_hash(x, y, z):
 
 
 def lump(cx, cz, layer, spin):
-    """One item: two stacked boxes standing in for ClayLumpGeometry's frustum."""
+    """One item: two stacked boxes standing in for LumpGeometry's frustum."""
     y0 = HEIGHT[layer] * 16
     tall = LUMP_HEIGHT * 16
     base_half = LUMP_WIDTH * 16 / 2
@@ -101,7 +101,7 @@ def single_pile(count, seed):
 def merged_quadrant(quadrant_x, quadrant_z, seed):
     """One block's 64 items, drawn as its quadrant of a pyramid spanning the 2x2.
 
-    This is ClayPileRenderer's merged branch verbatim: offsets are measured from
+    This is PileRenderer's merged branch verbatim: offsets are measured from
     the centre of the two by two, which sits at the (1 - quadrant) corner of the
     block, and the block's own origin is then added back on.
     """

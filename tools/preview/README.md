@@ -1,12 +1,12 @@
 # Clay pile previews
 
 Renders the clay pile's geometry outside the game, so the layout can be judged without a
-Minecraft client. `make_models.py` mirrors the constants in `ClayPileLayout` and
-`ClayLumpGeometry` and emits one Minecraft model per case, which
+Minecraft client. `make_models.py` mirrors the constants in `PileLayout` and
+`LumpGeometry` and emits one Minecraft model per case, which
 [Pixel-Art-Aide](https://github.com/minerguy341/Pixel-Art-Aide) renders in 2:1 iso.
 
 It also asserts that the four `merged_quadrant` calls tile the merged pyramid exactly - the
-same invariant `ClayPileRenderer`'s merged branch relies on.
+same invariant `PileRenderer`'s merged branch relies on.
 
 ```sh
 git clone https://github.com/minerguy341/Pixel-Art-Aide /tmp/aide

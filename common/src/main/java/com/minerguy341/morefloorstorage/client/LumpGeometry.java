@@ -6,7 +6,8 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.FastColor.ARGB32;
 
 /**
- * One lump of clay, as real geometry rather than the item's flat inventory icon.
+ * One lump in a pile - clay, ore, whatever the pile holds - as real geometry rather than the item's flat
+ * inventory icon.
  * <p>
  * A lump is a squat frustum - a box with a smaller top than bottom - centred on the origin in X and Z
  * and standing on {@code y = 0}, so the caller can rotate it about its own base. The vertex order is
@@ -14,7 +15,7 @@ import net.minecraft.util.FastColor.ARGB32;
  * the sprite instead of from its corner: item icons are usually transparent at the edges, and a lump
  * wants solid colour on every face.
  */
-public final class ClayLumpGeometry
+public final class LumpGeometry
 {
     /** Width of a lump across its base, in blocks. */
     public static final float WIDTH = 0.25f;
@@ -25,7 +26,8 @@ public final class ClayLumpGeometry
 
     /**
      * The slice of the sprite to texture with, as a fraction of it. The middle is used because the corners
-     * of an item icon are usually empty.
+     * of an item icon are usually empty, and because it is the most representative part of a chunk of ore,
+     * whose sprite is mostly stone around the edges.
      */
     private static final float UV_MIN = 0.25f;
     private static final float UV_MAX = 0.75f;
@@ -88,5 +90,5 @@ public final class ClayLumpGeometry
         return 1f;
     }
 
-    private ClayLumpGeometry() {}
+    private LumpGeometry() {}
 }

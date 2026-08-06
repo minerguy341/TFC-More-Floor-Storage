@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import com.minerguy341.morefloorstorage.common.block.ClayPileBlock;
+import com.minerguy341.morefloorstorage.common.block.PileBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,20 +16,24 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Holds the individual items making up a clay pile. Every entry is a stack of exactly one, in the
- * order it was placed, so that the top of the pile is the last thing added - the same contract
- * TerraFirmaCraft's ingot piles use.
+ * Holds the individual items making up a pile. Every entry is a stack of exactly one, in the order it
+ * was placed, so that the top of the pile is the last thing added - the same contract TerraFirmaCraft's
+ * ingot piles use.
+ * <p>
+ * Shared by every kind of pile; which items are allowed in is decided at placement time by
+ * {@link com.minerguy341.morefloorstorage.common.MFSInteractions}, not here.
  */
-public class ClayPileBlockEntity extends SyncedBlockEntity
+public class PileBlockEntity extends SyncedBlockEntity
 {
     private final List<ItemStack> stacks = new ArrayList<>();
 
-    public ClayPileBlockEntity(BlockPos pos, BlockState state)
+    public PileBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state)
     {
-        super(MFSBlockEntities.CLAY_PILE.get(), pos, state);
+        super(type, pos, state);
     }
 
     /**
@@ -37,7 +41,7 @@ public class ClayPileBlockEntity extends SyncedBlockEntity
      */
     public boolean addItem(ItemStack stack)
     {
-        if (stack.isEmpty() || stacks.size() >= ClayPileBlock.MAX_ITEMS)
+        if (stack.isEmpty() || stacks.size() >= PileBlock.MAX_ITEMS)
         {
             return false;
         }

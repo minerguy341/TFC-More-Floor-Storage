@@ -2,9 +2,9 @@ package com.minerguy341.morefloorstorage.client;
 
 import java.util.List;
 
-import com.minerguy341.morefloorstorage.common.block.ClayPileBlock;
-import com.minerguy341.morefloorstorage.common.block.ClayPileLayout;
-import com.minerguy341.morefloorstorage.common.blockentity.ClayPileBlockEntity;
+import com.minerguy341.morefloorstorage.common.block.PileBlock;
+import com.minerguy341.morefloorstorage.common.block.PileLayout;
+import com.minerguy341.morefloorstorage.common.blockentity.PileBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -18,15 +18,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
- * Draws a clay pile as the stepped pyramid described by {@link ClayPileLayout}: each item sits at its own
- * spot in its layer, so the heap visibly grows lump by lump as clay is added and shrinks again as it is
+ * Draws a pile as the stepped pyramid described by {@link PileLayout}: each item sits at its own spot in
+ * its layer, so the heap visibly grows lump by lump as items are added and shrinks again as they are
  * taken off the top.
  * <p>
- * Lumps are real geometry rather than the item's flat inventory icon - see {@link ClayLumpGeometry} - so
- * a pile reads as a heap of clay rather than a stack of paper discs. All the icon is used for is its
- * colour, which means any clay-type item, including a modded one, gets a lump that looks like itself.
+ * Lumps are real geometry rather than the item's flat inventory icon - see {@link LumpGeometry} - so a
+ * pile reads as a heap rather than a stack of paper discs. All the icon is used for is its colour, which
+ * means one renderer serves every kind of pile, and any item, including a modded one, gets a lump that
+ * looks like itself.
  */
-public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity>
+public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
 {
     /** How far a lump may be spun about its own base, in degrees, to break up the grid. */
     private static final float MAX_SPIN = 25f;
@@ -34,7 +35,7 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
     private static final float MAX_TILT = 6f;
 
     @Override
-    public void render(ClayPileBlockEntity pile, float partialTick, PoseStack pose, MultiBufferSource buffers, int packedLight, int packedOverlay)
+    public void render(PileBlockEntity pile, float partialTick, PoseStack pose, MultiBufferSource buffers, int packedLight, int packedOverlay)
     {
         final Level level = pile.getLevel();
         if (level == null)
@@ -50,7 +51,7 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
         // When four full piles merge, each one draws its own 64 items as one quadrant of a pyramid
         // spanning the whole two by two. Doubling a layer's grid quadruples it, so the counts line up
         // exactly and no items have to move between block entities.
-        final BlockPos origin = ClayPileBlock.mergeOrigin(level, pos);
+        final BlockPos origin = PileBlock.mergeOrigin(level, pos);
         final int quadrantX = origin == null ? 0 : pos.getX() - origin.getX();
         final int quadrantZ = origin == null ? 0 : pos.getZ() - origin.getZ();
 
@@ -62,9 +63,9 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
                 continue;
             }
 
-            final int layer = ClayPileLayout.layerOf(i);
-            final int within = ClayPileLayout.indexInLayer(i);
-            final int grid = ClayPileLayout.GRID[layer];
+            final int layer = PileLayout.layerOf(i);
+            final int within = PileLayout.indexInLayer(i);
+            final int grid = PileLayout.GRID[layer];
             final int column = within % grid;
             final int row = within / grid;
 
@@ -74,13 +75,13 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
             final float z;
             if (origin == null)
             {
-                x = 0.5f + ClayPileLayout.offsetInLayer(layer, column);
-                z = 0.5f + ClayPileLayout.offsetInLayer(layer, row);
+                x = 0.5f + PileLayout.offsetInLayer(layer, column);
+                z = 0.5f + PileLayout.offsetInLayer(layer, row);
             }
             else
             {
-                x = (1 - quadrantX) + ClayPileLayout.offsetInMergedLayer(layer, quadrantX * grid + column);
-                z = (1 - quadrantZ) + ClayPileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row);
+                x = (1 - quadrantX) + PileLayout.offsetInMergedLayer(layer, quadrantX * grid + column);
+                z = (1 - quadrantZ) + PileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row);
             }
 
             final TextureAtlasSprite sprite = Minecraft.getInstance().getItemRenderer()
@@ -88,12 +89,12 @@ public class ClayPileRenderer implements BlockEntityRenderer<ClayPileBlockEntity
                 .getParticleIcon();
 
             pose.pushPose();
-            pose.translate(x, ClayPileLayout.heightOf(layer), z);
+            pose.translate(x, PileLayout.heightOf(layer), z);
             pose.mulPose(Axis.YP.rotationDegrees(jitter(seed, i, 0) * MAX_SPIN));
             pose.mulPose(Axis.XP.rotationDegrees(jitter(seed, i, 1) * MAX_TILT));
             pose.mulPose(Axis.ZP.rotationDegrees(jitter(seed, i, 2) * MAX_TILT));
 
-            ClayLumpGeometry.render(pose, buffer, sprite, packedLight, packedOverlay);
+            LumpGeometry.render(pose, buffer, sprite, packedLight, packedOverlay);
 
             pose.popPose();
         }

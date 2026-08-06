@@ -1,8 +1,8 @@
 package com.minerguy341.morefloorstorage.common.block;
 
 /**
- * The shape of a clay pile, shared by the block's voxel shape and the renderer so the outline always
- * matches what you can see.
+ * The shape of a pile, shared by the block's voxel shape and the renderer so the outline always
+ * matches what you can see. Every kind of pile uses the same one.
  * <p>
  * A pile holds 64 items, filled bottom up in six square layers that get smaller as they go, so a full
  * pile is a stepped pyramid and a partial one is however much of that pyramid has been built so far.
@@ -19,7 +19,7 @@ package com.minerguy341.morefloorstorage.common.block;
  * times the items, which is exactly four full piles, so every block contributes its own 64 items as one
  * quadrant of the larger pyramid and nothing has to be moved between block entities.
  */
-public final class ClayPileLayout
+public final class PileLayout
 {
     public static final int LAYERS = 6;
 
@@ -124,5 +124,5 @@ public final class ClayPileLayout
         return MERGED_INSET[layer];
     }
 
-    private ClayPileLayout() {}
+    private PileLayout() {}
 }

@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "#tfc:small_ore_pieces", "required": false },
+    { "id": "#tfc:metal_ores", "required": false }
+  ]
+}

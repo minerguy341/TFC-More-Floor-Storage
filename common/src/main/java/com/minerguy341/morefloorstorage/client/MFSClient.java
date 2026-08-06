@@ -20,7 +20,8 @@ public final class MFSClient
 
     private static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
-        event.registerBlockEntityRenderer(MFSBlockEntities.CLAY_PILE.get(), context -> new ClayPileRenderer());
+        event.registerBlockEntityRenderer(MFSBlockEntities.CLAY_PILE.get(), context -> new PileRenderer());
+        event.registerBlockEntityRenderer(MFSBlockEntities.ORE_PILE.get(), context -> new PileRenderer());
         event.registerBlockEntityRenderer(MFSBlockEntities.LEANING_TOOL.get(), context -> new LeaningToolRenderer());
     }
 }

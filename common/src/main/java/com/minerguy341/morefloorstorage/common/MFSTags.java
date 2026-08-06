@@ -14,6 +14,12 @@ public final class MFSTags
     public static final TagKey<Item> CLAY_PILE_ITEMS = item("clay_pile_items");
 
     /**
+     * Items that can be stacked into an ore pile. Defaults to TFC's small ore pieces - the native
+     * deposits scattered on the ground - and its poor, normal and rich graded ores.
+     */
+    public static final TagKey<Item> ORE_PILE_ITEMS = item("ore_pile_items");
+
+    /**
      * Items that can be leaned against the side of a block. Defaults to the common tool tags.
      */
     public static final TagKey<Item> LEANABLE = item("leanable");

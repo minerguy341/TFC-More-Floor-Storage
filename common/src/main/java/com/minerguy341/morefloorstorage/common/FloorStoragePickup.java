@@ -1,7 +1,7 @@
 package com.minerguy341.morefloorstorage.common;
 
 import com.minerguy341.morefloorstorage.MFSConfig;
-import com.minerguy341.morefloorstorage.common.block.ClayPileBlock;
+import com.minerguy341.morefloorstorage.common.block.PileBlock;
 import com.minerguy341.morefloorstorage.common.block.LeaningToolBlock;
 import com.minerguy341.morefloorstorage.compat.tfc.TFCFloorStorage;
 import net.minecraft.core.BlockPos;
@@ -43,7 +43,7 @@ public final class FloorStoragePickup
         {
             return leaning.takeTool(level, pos, state, player, hit);
         }
-        if (state.getBlock() instanceof ClayPileBlock pile)
+        if (state.getBlock() instanceof PileBlock pile)
         {
             return pile.removeFromTop(level, pos, player, whole);
         }

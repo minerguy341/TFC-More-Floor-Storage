@@ -3,15 +3,23 @@
 A [TerraFirmaCraft](https://github.com/TerraFirmaCraft/TerraFirmaCraft) addon about getting more use out
 of the ground you walk on.
 
-- **Clay piles.** TFC's ingot pile mechanic, applied to clay. Sneak-click the ground with clay and it
-  stacks into a pile of up to 64 rather than being placed as a single loose item. The pile builds itself
-  into a stepped pyramid as it fills, and empties from the top down.
+- **Piles.** TFC's ingot pile mechanic, applied to other things. Sneak-click the ground with a pile-able
+  item and it stacks into a pile of up to 64 rather than being placed as a single loose item. The pile
+  builds itself into a stepped pyramid as it fills, and empties from the top down. Two kinds ship:
+
+  | Pile | Takes |
+  | --- | --- |
+  | Clay pile | clay balls, TFC fire clay, kaolin clay, unfired bricks |
+  | Ore pile | TFC's small native deposits - the ones littering the ground - and its poor, normal and rich graded ores |
+
+  Only piles of the same kind merge with each other, though a pile of any kind can be built on top of any
+  merged group.
 
   Piles do not stack on top of each other - a pyramid does not balance on the point of another one. To
   build upwards, fill out a **2x2 of full piles**: the four merge into a single pyramid spanning all four
   blocks, which is flat enough on top to take a next tier. Each block keeps its own 64 items and simply
-  draws them as its quadrant of the larger pyramid, so nothing moves between them. Take clay back off any
-  of the four and the merge breaks, dropping whatever was resting on it.
+  draws them as its quadrant of the larger pyramid, so nothing moves between them. Take an item back off
+  any of the four and the merge breaks, dropping whatever was resting on it.
 
   Piles left over from a larger arrangement stay as individual pyramids: in a 2x3, one 2x2 merges and the
   spare pair does not, which keeps two overlapping pyramids from ever disagreeing about where the apex is.
@@ -19,8 +27,8 @@ of the ground you walk on.
   key to stand the tool up against the wall, in the style of Vintage Story. Up to four tools lean side by
   side in one block, and the block has no collision, so you can walk right through them.
 - **Sneak to pick up.** Sneak + TFC's floor storage key takes an item back *out* of whatever floor storage
-  is under your crosshair - clay piles, leaning tools, TFC's placed items and shelves, and TFC's ingot and
-  double ingot piles - instead of placing another item down.
+  is under your crosshair - any of this mod's piles, leaning tools, TFC's placed items and shelves, and
+  TFC's ingot and double ingot piles - instead of placing another item down.
 
 Single loader (NeoForge), built for multiple Minecraft versions from one shared source tree.
 
@@ -67,7 +75,7 @@ nothing else to register.
 
 Things known to need an override past 1.21.1: `ItemInteractionResult` was folded back into
 `InteractionResult` in 1.21.2, `DirectionProperty` became `EnumProperty<Direction>`, and `updateShape` /
-`useItemOn` gained extra parameters. Those touch `ClayPileBlock`, `LeaningToolBlock`, and
+`useItemOn` gained extra parameters. Those touch `PileBlock`, `LeaningToolBlock`, and
 `MFSInteractions`.
 
 ## How the keybind is shared with TFC
@@ -87,7 +95,8 @@ ask to lean or pick up but never dictate what it gets.
 
 | Option | Default | |
 | --- | --- | --- |
-| `clay_piles.enableClayPiles` | `true` | Clay stacks into piles |
+| `piles.enableClayPiles` | `true` | Clay stacks into piles |
+| `piles.enableOrePiles` | `true` | Ore stacks into piles |
 | `tool_leaning.enableToolLeaning` | `true` | Tools lean against walls |
 | `floor_storage.enableSneakPickup` | `true` | Sneak + the floor storage key picks up |
 | `floor_storage.sneakPickupWholeStack` | `false` | Empty a whole pile in one press |
@@ -97,6 +106,12 @@ ask to lean or pick up but never dictate what it gets.
 
 - `#morefloorstorage:clay_pile_items` - what counts as clay. Defaults to clay balls, TFC's fire clay,
   kaolin clay, and unfired bricks.
+- `#morefloorstorage:ore_pile_items` - what counts as ore. Defaults to `#tfc:small_ore_pieces` and
+  `#tfc:metal_ores`. TFC's non-metal ore items - gems, coal, sulfur and friends - are deliberately left
+  out; add `#tfc:ore_pieces` to this tag if you want them piling too.
+
+  Adding a third kind of pile is a block, a block entity type, a tag, and one line in
+  `MFSInteractions.PILE_KINDS`. Everything else - layout, merging, rendering, pickup - is shared.
 - `#morefloorstorage:leanable` - what can be leaned against a wall. Defaults to the `#c:tools` family.
 
 ## Licence

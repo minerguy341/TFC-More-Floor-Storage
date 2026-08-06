@@ -1,7 +1,8 @@
 package com.minerguy341.morefloorstorage.common.block;
 
-import com.minerguy341.morefloorstorage.common.blockentity.ClayPileBlockEntity;
-import com.minerguy341.morefloorstorage.common.blockentity.MFSBlockEntities;
+import java.util.function.Supplier;
+
+import com.minerguy341.morefloorstorage.common.blockentity.PileBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -22,6 +23,7 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
@@ -34,19 +36,22 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * TerraFirmaCraft's ingot pile, applied to clay. Clay-type items sneak-placed on the ground stack into
- * a pile of up to {@link #MAX_ITEMS} instead of dropping as loose items, and clicking the pile takes the
- * top one back off. The pile grows as it fills, in the stepped pyramid described by
- * {@link ClayPileLayout}.
+ * TerraFirmaCraft's ingot pile, generalised. Items sneak-placed on the ground stack into a pile of up to
+ * {@link #MAX_ITEMS} instead of being placed as a single loose item, and clicking the pile takes the top
+ * one back off. The pile grows as it fills, in the stepped pyramid described by {@link PileLayout}.
  * <p>
  * A pyramid will not balance on the point of another one, so piles do not stack. The way up is to fill a
  * two by two: four full piles merge into a single pyramid spanning all four blocks, which is broad enough
- * to build the next tier on. Take clay back off any of the four and the merge breaks, dropping whatever
- * was resting on it.
+ * to build the next tier on. Take an item back off any of the four and the merge breaks, dropping
+ * whatever was resting on it.
+ * <p>
+ * One instance is registered per kind of pile - see {@link MFSBlocks} - each with its own block entity
+ * type and its own tag of items it accepts. Only piles of the same kind merge with each other, though a
+ * pile of any kind may be built on top of any merged group.
  */
-public class ClayPileBlock extends Block implements EntityBlock
+public class PileBlock extends Block implements EntityBlock
 {
-    public static final int MAX_ITEMS = ClayPileLayout.MAX_ITEMS;
+    public static final int MAX_ITEMS = PileLayout.MAX_ITEMS;
 
     public static final IntegerProperty COUNT = IntegerProperty.create("count", 1, MAX_ITEMS);
 
@@ -65,14 +70,14 @@ public class ClayPileBlock extends Block implements EntityBlock
 
     private static VoxelShape[] buildShapes()
     {
-        final VoxelShape[] shapes = new VoxelShape[ClayPileLayout.LAYERS];
+        final VoxelShape[] shapes = new VoxelShape[PileLayout.LAYERS];
         VoxelShape shape = Shapes.empty();
-        for (int layer = 0; layer < ClayPileLayout.LAYERS; layer++)
+        for (int layer = 0; layer < PileLayout.LAYERS; layer++)
         {
-            final int inset = ClayPileLayout.insetOf(layer);
+            final int inset = PileLayout.insetOf(layer);
             shape = Shapes.or(shape, box(
-                inset, ClayPileLayout.bottomOf(layer), inset,
-                16 - inset, ClayPileLayout.topOf(layer), 16 - inset));
+                inset, PileLayout.bottomOf(layer), inset,
+                16 - inset, PileLayout.topOf(layer), 16 - inset));
             shapes[layer] = shape.optimize();
         }
         return shapes;
@@ -86,10 +91,10 @@ public class ClayPileBlock extends Block implements EntityBlock
             for (int quadrantZ = 0; quadrantZ < 2; quadrantZ++)
             {
                 VoxelShape shape = Shapes.empty();
-                for (int layer = 0; layer < ClayPileLayout.LAYERS; layer++)
+                for (int layer = 0; layer < PileLayout.LAYERS; layer++)
                 {
                     // The merged pyramid is 32 pixels across; clip each layer to this block's half of it
-                    final int inset = ClayPileLayout.mergedInsetOf(layer);
+                    final int inset = PileLayout.mergedInsetOf(layer);
                     final double minX = Mth.clamp(inset - quadrantX * 16, 0, 16);
                     final double maxX = Mth.clamp(32 - inset - quadrantX * 16, 0, 16);
                     final double minZ = Mth.clamp(inset - quadrantZ * 16, 0, 16);
@@ -97,8 +102,8 @@ public class ClayPileBlock extends Block implements EntityBlock
                     if (maxX > minX && maxZ > minZ)
                     {
                         shape = Shapes.or(shape, box(
-                            minX, ClayPileLayout.bottomOf(layer), minZ,
-                            maxX, ClayPileLayout.topOf(layer), maxZ));
+                            minX, PileLayout.bottomOf(layer), minZ,
+                            maxX, PileLayout.topOf(layer), maxZ));
                     }
                 }
                 shapes[quadrantX][quadrantZ] = shape.optimize();
@@ -122,12 +127,12 @@ public class ClayPileBlock extends Block implements EntityBlock
     {
         // Cheap rejection first: this runs from getShape, so most calls should cost a single state read
         final BlockState state = level.getBlockState(pos);
-        if (!(state.getBlock() instanceof ClayPileBlock) || state.getValue(COUNT) < MAX_ITEMS)
+        if (!(state.getBlock() instanceof PileBlock pileBlock) || state.getValue(COUNT) < MAX_ITEMS)
         {
             return null;
         }
 
-        final BlockPos origin = firstFullGroup(level, pos);
+        final BlockPos origin = firstFullGroup(level, pos, pileBlock);
         if (origin == null)
         {
             return null;
@@ -136,7 +141,7 @@ public class ClayPileBlock extends Block implements EntityBlock
         {
             for (int dz = 0; dz < 2; dz++)
             {
-                if (!origin.equals(firstFullGroup(level, origin.offset(dx, 0, dz))))
+                if (!origin.equals(firstFullGroup(level, origin.offset(dx, 0, dz), pileBlock)))
                 {
                     return null;
                 }
@@ -145,12 +150,12 @@ public class ClayPileBlock extends Block implements EntityBlock
         return origin;
     }
 
-    private static @Nullable BlockPos firstFullGroup(BlockGetter level, BlockPos pos)
+    private static @Nullable BlockPos firstFullGroup(BlockGetter level, BlockPos pos, PileBlock pileBlock)
     {
         for (int[] candidate : GROUP_CANDIDATES)
         {
             final BlockPos origin = pos.offset(candidate[0], 0, candidate[1]);
-            if (isFullGroup(level, origin))
+            if (isFullGroup(level, origin, pileBlock))
             {
                 return origin;
             }
@@ -158,14 +163,15 @@ public class ClayPileBlock extends Block implements EntityBlock
         return null;
     }
 
-    private static boolean isFullGroup(BlockGetter level, BlockPos origin)
+    private static boolean isFullGroup(BlockGetter level, BlockPos origin, PileBlock pileBlock)
     {
         for (int dx = 0; dx < 2; dx++)
         {
             for (int dz = 0; dz < 2; dz++)
             {
+                // Same kind of pile throughout: clay and ore sitting side by side are two pyramids
                 final BlockState state = level.getBlockState(origin.offset(dx, 0, dz));
-                if (!(state.getBlock() instanceof ClayPileBlock) || state.getValue(COUNT) < MAX_ITEMS)
+                if (!state.is(pileBlock) || state.getValue(COUNT) < MAX_ITEMS)
                 {
                     return false;
                 }
@@ -174,9 +180,16 @@ public class ClayPileBlock extends Block implements EntityBlock
         return true;
     }
 
-    public ClayPileBlock(Properties properties)
+    private final Supplier<BlockEntityType<PileBlockEntity>> blockEntityType;
+
+    /**
+     * @param blockEntityType this kind of pile's own block entity type, supplied lazily because the type
+     *                        is registered against this very block.
+     */
+    public PileBlock(Properties properties, Supplier<BlockEntityType<PileBlockEntity>> blockEntityType)
     {
         super(properties);
+        this.blockEntityType = blockEntityType;
         registerDefaultState(getStateDefinition().any().setValue(COUNT, 1));
     }
 
@@ -196,7 +209,7 @@ public class ClayPileBlock extends Block implements EntityBlock
         }
 
         final BlockState topState = level.getBlockState(topPos);
-        if (!topState.is(this) || !(level.getBlockEntity(topPos) instanceof ClayPileBlockEntity pile))
+        if (!topState.is(this) || !(level.getBlockEntity(topPos) instanceof PileBlockEntity pile))
         {
             return false;
         }
@@ -260,7 +273,7 @@ public class ClayPileBlock extends Block implements EntityBlock
     {
         final BlockPos below = pos.below();
         final BlockState belowState = level.getBlockState(below);
-        if (belowState.getBlock() instanceof ClayPileBlock)
+        if (belowState.getBlock() instanceof PileBlock)
         {
             // A pyramid does not balance on the point of another one. The only way up is a two by two of
             // full piles that has merged into a wide pyramid, which is flat enough on top to build on.
@@ -292,9 +305,11 @@ public class ClayPileBlock extends Block implements EntityBlock
             for (int dz = -1; dz <= 1; dz++)
             {
                 final BlockPos target = above.offset(dx, 0, dz);
-                if (level.getBlockState(target).is(this))
+                // Any kind of pile may rest on a merged group, and a scheduled tick only fires if it
+                // names the block actually standing there
+                if (level.getBlockState(target).getBlock() instanceof PileBlock pileAbove)
                 {
-                    level.scheduleTick(target, this, 1);
+                    level.scheduleTick(target, pileAbove, 1);
                 }
             }
         }
@@ -313,7 +328,7 @@ public class ClayPileBlock extends Block implements EntityBlock
     public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player)
     {
         // Creative breaks void the pile rather than showering the player in clay
-        if (player.isCreative() && level.getBlockEntity(pos) instanceof ClayPileBlockEntity pile)
+        if (player.isCreative() && level.getBlockEntity(pos) instanceof PileBlockEntity pile)
         {
             pile.removeAll(stack -> {});
         }
@@ -325,7 +340,7 @@ public class ClayPileBlock extends Block implements EntityBlock
     {
         if (!state.is(newState.getBlock()))
         {
-            if (level.getBlockEntity(pos) instanceof ClayPileBlockEntity pile)
+            if (level.getBlockEntity(pos) instanceof PileBlockEntity pile)
             {
                 pile.removeAll(stack -> popResource(level, pos, stack));
             }
@@ -342,7 +357,7 @@ public class ClayPileBlock extends Block implements EntityBlock
         {
             return MERGED_SHAPES[pos.getX() - origin.getX()][pos.getZ() - origin.getZ()];
         }
-        return SHAPES[ClayPileLayout.layerOf(state.getValue(COUNT) - 1)];
+        return SHAPES[PileLayout.layerOf(state.getValue(COUNT) - 1)];
     }
 
     @Override
@@ -354,19 +369,19 @@ public class ClayPileBlock extends Block implements EntityBlock
     @Override
     protected RenderShape getRenderShape(BlockState state)
     {
-        // Contents are drawn by ClayPileRenderer; the block itself has no baked geometry
+        // Contents are drawn by PileRenderer; the block itself has no baked geometry
         return RenderShape.INVISIBLE;
     }
 
     @Override
     public ItemStack getCloneItemStack(BlockState state, HitResult target, LevelReader level, BlockPos pos, Player player)
     {
-        return level.getBlockEntity(pos) instanceof ClayPileBlockEntity pile ? pile.getPickedItemStack() : ItemStack.EMPTY;
+        return level.getBlockEntity(pos) instanceof PileBlockEntity pile ? pile.getPickedItemStack() : ItemStack.EMPTY;
     }
 
     @Override
     public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state)
     {
-        return MFSBlockEntities.CLAY_PILE.get().create(pos, state);
+        return blockEntityType.get().create(pos, state);
     }
 }
