@@ -1,0 +1,281 @@
+{
+ "__comment__": "Extrapolated by More Floor Storage from tfc:block/groundcover/cassiterite; UVs chosen to match that model's palette",
+ "textures": {
+  "0": "tfc:item/ore/rich_cassiterite",
+  "particle": "tfc:item/ore/rich_cassiterite"
+ },
+ "elements": [
+  {
+   "from": [
+    8,
+    0,
+    6
+   ],
+   "to": [
+    10,
+    1,
+    9
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      8,
+      8,
+      10,
+      11
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      9,
+      3,
+      11,
+      6
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      3,
+      12,
+      5,
+      13
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      7,
+      5,
+      9,
+      6
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      3,
+      11,
+      6,
+      12
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      2,
+      12,
+      5,
+      13
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    6,
+    0,
+    5
+   ],
+   "to": [
+    8,
+    2,
+    8
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      8,
+      8,
+      10,
+      11
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      9,
+      3,
+      11,
+      6
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      12,
+      3,
+      14,
+      5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      4,
+      11,
+      6,
+      13
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      12,
+      4,
+      15,
+      6
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      7,
+      4,
+      10,
+      6
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    5,
+    0,
+    8
+   ],
+   "to": [
+    8,
+    1,
+    10
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      4,
+      10,
+      7,
+      12
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      9,
+      4,
+      12,
+      6
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      12,
+      5,
+      15,
+      6
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      5,
+      3,
+      8,
+      4
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      2,
+      6,
+      4,
+      7
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      8,
+      6,
+      10,
+      7
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    6,
+    2,
+    6
+   ],
+   "to": [
+    8,
+    3,
+    7
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      4,
+      11,
+      6,
+      12
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      12,
+      3,
+      14,
+      4
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      3,
+      12,
+      5,
+      13
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      7,
+      5,
+      9,
+      6
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      2,
+      12,
+      3,
+      13
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      3,
+      10,
+      4,
+      11
+     ],
+     "texture": "#0"
+    }
+   }
+  }
+ ]
+}

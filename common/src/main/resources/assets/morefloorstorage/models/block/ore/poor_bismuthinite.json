@@ -1,0 +1,195 @@
+{
+ "__comment__": "Extrapolated by More Floor Storage from tfc:block/groundcover/bismuthinite; UVs chosen to match that model's palette",
+ "textures": {
+  "0": "tfc:item/ore/poor_bismuthinite",
+  "particle": "tfc:item/ore/poor_bismuthinite"
+ },
+ "elements": [
+  {
+   "from": [
+    7,
+    0,
+    6
+   ],
+   "to": [
+    12,
+    1,
+    9
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      5,
+      10,
+      10,
+      13
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      5,
+      7,
+      10,
+      10
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      6,
+      6,
+      11,
+      7
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      7,
+      5,
+      12,
+      6
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      6,
+      3,
+      9,
+      4
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      10,
+      9,
+      13,
+      10
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    7,
+    1,
+    6
+   ],
+   "to": [
+    11,
+    2,
+    8
+   ],
+   "faces": {
+    "up": {
+     "uv": [
+      5,
+      6,
+      9,
+      8
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      4,
+      11,
+      8,
+      12
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      9,
+      8,
+      13,
+      9
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      5,
+      6,
+      7,
+      7
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      10,
+      3,
+      12,
+      4
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    6,
+    0,
+    5
+   ],
+   "to": [
+    7,
+    1,
+    8
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      8,
+      4,
+      9,
+      7
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      5,
+      7,
+      6,
+      10
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      9,
+      9,
+      10,
+      10
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      7,
+      10,
+      8,
+      11
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      3,
+      9,
+      6,
+      10
+     ],
+     "texture": "#0"
+    }
+   }
+  }
+ ]
+}

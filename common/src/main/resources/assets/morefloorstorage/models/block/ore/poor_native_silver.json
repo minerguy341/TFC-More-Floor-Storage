@@ -1,0 +1,263 @@
+{
+ "__comment__": "Extrapolated by More Floor Storage from tfc:block/groundcover/native_silver; UVs chosen to match that model's palette",
+ "textures": {
+  "0": "tfc:item/ore/poor_native_silver",
+  "particle": "tfc:item/ore/poor_native_silver"
+ },
+ "elements": [
+  {
+   "from": [
+    7,
+    0,
+    7
+   ],
+   "to": [
+    9,
+    1,
+    10
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      6,
+      6,
+      8,
+      9
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      5,
+      5,
+      7,
+      8
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      5,
+      6,
+      7,
+      7
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      7,
+      8,
+      9,
+      9
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      4,
+      8,
+      7,
+      9
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      5,
+      9,
+      8,
+      10
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    6,
+    1,
+    7
+   ],
+   "to": [
+    9,
+    2,
+    9
+   ],
+   "faces": {
+    "up": {
+     "uv": [
+      5,
+      6,
+      8,
+      8
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      2,
+      4,
+      5,
+      5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      6,
+      10,
+      9,
+      11
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      7,
+      8,
+      9,
+      9
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      3,
+      3,
+      5,
+      4
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    5,
+    0,
+    7
+   ],
+   "to": [
+    7,
+    1,
+    9
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      5,
+      6,
+      7,
+      8
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      6,
+      4,
+      8,
+      5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      5,
+      6,
+      7,
+      7
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      7,
+      8,
+      9,
+      9
+     ],
+     "texture": "#0"
+    }
+   }
+  },
+  {
+   "from": [
+    9,
+    0,
+    8
+   ],
+   "to": [
+    10,
+    1,
+    11
+   ],
+   "faces": {
+    "down": {
+     "uv": [
+      7,
+      4,
+      8,
+      7
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      6,
+      10,
+      7,
+      13
+     ],
+     "texture": "#0"
+    },
+    "north": {
+     "uv": [
+      11,
+      9,
+      12,
+      10
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      10,
+      8,
+      11,
+      9
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      6,
+      10,
+      9,
+      11
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      6,
+      8,
+      9,
+      9
+     ],
+     "texture": "#0"
+    }
+   }
+  }
+ ]
+}
