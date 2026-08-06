@@ -9,10 +9,14 @@ have only a flat `item/generated` icon. These scripts build the missing 36 model
   does not show its whole sprite: every face carries a hand-picked UV rect, so weighting each rect
   by the area of the face carrying it gives the palette the model really reads as.
 - `generate.py` builds a model per graded item. Geometry is that ore's own groundcover boxes, so
-  each ore keeps its native silhouette - thinned to the largest 60% for poor, and gaining a cap that
-  takes it from two pixels tall to three for rich. UVs are chosen rather than copied: every
-  fully-opaque window of the required size in the graded sprite is scored against the native
-  palette, and the best few are rotated between so faces vary.
+  each ore keeps its native silhouette, grown by grade. How much it grows is not invented: TFC's own
+  heating recipes melt these items to 10 / 15 / 25 / 35 mB for small / poor / normal / rich,
+  identically for all twelve ores, so a grade's model is built to that many times the small piece's
+  voxel count. Growth thickens the native boxes upward, biggest footprint first, which piles the
+  chunk into a mound rather than a slab. Because a box can only grow a whole pixel at a time the
+  targets are met or slightly overshot, never undershot - 1.5x to 1.8x for poor, and so on.
+  UVs are chosen rather than copied: every fully-opaque window of the required size in the graded
+  sprite is scored against the native palette, and the best few are rotated between so faces vary.
 
 ```sh
 python3 tools/ore_models/analyse.py  <tfc-checkout> tools/ore_models/palettes.json

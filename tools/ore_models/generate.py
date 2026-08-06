@@ -5,8 +5,10 @@ litter the ground - but the poor, normal and rich items of the same ores have on
 `item/generated` icon. This builds the missing models.
 
 Geometry comes from that ore's own groundcover model, so each ore keeps its native silhouette,
-varied by grade: poor drops the smaller chips, normal is the shape as authored, rich gains a cap
-that takes it from two pixels tall to three.
+grown by grade. How much it grows is not invented: TFC's own heating recipes melt these items down
+to 10, 15, 25 and 35 mB for small, poor, normal and rich, identically for all twelve ores, so a
+grade's model is built to that many times the small piece's voxel count. Growth thickens the native
+boxes upward, biggest footprint first, which piles the chunk into a mound rather than a slab.
 
 UVs are chosen, not copied. For every face, each candidate window of the required size in the
 graded sprite is scored against the palette the native ground model actually puts on screen
@@ -29,6 +31,13 @@ SATURATION_WEIGHT = 140.0
 # Reward for a window with internal contrast. Matching the mean colour alone gives flat, dead faces;
 # at 2.0 the generated models land on the native models' own contrast (~35 stddev of luma)
 CONTRAST_BONUS = 2.0
+
+# Millibuckets of metal each grade melts down to, from TFC's own heating recipes. The same for every
+# graded ore, and what the models' voxel counts are scaled against.
+GRADE_YIELD = {"small": 10, "poor": 15, "normal": 25, "rich": 35}
+
+# A chunk this tall stops reading as something lying on the ground
+MAX_BOX_HEIGHT = 6
 
 
 def saturation(colour):
@@ -65,23 +74,30 @@ def ranked_windows(sprite, width, height, reference_mean, reference_saturation):
 
 
 def graded_geometry(elements, grade):
-    """The ore's own boxes, thinned out for poor and capped for rich."""
-    by_volume = sorted(elements, key=lambda e: -volume(e))
-    if grade == "poor":
-        keep = max(2, round(len(elements) * 0.6))
-        return by_volume[:keep]
-    if grade == "rich":
-        biggest = by_volume[0]
-        inset_x = 1 if biggest["to"][0] - biggest["from"][0] > 2 else 0
-        inset_z = 1 if biggest["to"][2] - biggest["from"][2] > 2 else 0
-        top = max(e["to"][1] for e in elements)
-        cap = {
-            "from": [biggest["from"][0] + inset_x, top, biggest["from"][2] + inset_z],
-            "to": [biggest["to"][0] - inset_x, top + 1, biggest["to"][2] - inset_z],
-            "faces": {d: dict(f) for d, f in biggest.get("faces", {}).items()},
-        }
-        return list(elements) + [cap]
-    return list(elements)
+    """The ore's own boxes, thickened until the chunk holds this grade's share of metal."""
+    target = sum(volume(e) for e in elements) * GRADE_YIELD[grade] / GRADE_YIELD["small"]
+    grown = [{"from": list(e["from"]), "to": list(e["to"]),
+              "faces": {d: dict(f) for d, f in e.get("faces", {}).items()}} for e in elements]
+    # Biggest footprint first, so the bulk of the chunk rises and the chips stay chips
+    order = sorted(range(len(grown)), key=lambda i: -footprint(grown[i]))
+    while sum(volume(e) for e in grown) < target:
+        raised = False
+        for i in order:
+            if sum(volume(e) for e in grown) >= target:
+                break
+            box = grown[i]
+            if box["to"][1] - box["from"][1] >= MAX_BOX_HEIGHT:
+                continue
+            box["to"][1] += 1
+            raised = True
+        if not raised:
+            break  # everything is as tall as it is allowed to get
+    return grown
+
+
+def footprint(element):
+    return ((element["to"][0] - element["from"][0])
+            * (element["to"][2] - element["from"][2]))
 
 
 def volume(element):
