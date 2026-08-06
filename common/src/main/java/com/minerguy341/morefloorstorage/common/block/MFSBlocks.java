@@ -18,6 +18,7 @@ public final class MFSBlocks
             .strength(0.5f)
             .sound(SoundType.GRAVEL)
             .noOcclusion()
+            .dynamicShape() // The shape depends on whether neighbouring piles have merged into a wide pyramid
             .isViewBlocking((state, level, pos) -> false)
             .pushReaction(PushReaction.DESTROY)
             .noLootTable() // Contents are dropped by the block entity instead

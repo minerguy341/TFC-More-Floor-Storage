@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -36,8 +37,12 @@ import org.jetbrains.annotations.Nullable;
  * TerraFirmaCraft's ingot pile, applied to clay. Clay-type items sneak-placed on the ground stack into
  * a pile of up to {@link #MAX_ITEMS} instead of dropping as loose items, and clicking the pile takes the
  * top one back off. The pile grows as it fills, in the stepped pyramid described by
- * {@link ClayPileLayout}. Piles stack vertically, and the pile that a click resolves to is always the
- * topmost one in the column, so a tall stack empties from the top down.
+ * {@link ClayPileLayout}.
+ * <p>
+ * A pyramid will not balance on the point of another one, so piles do not stack. The way up is to fill a
+ * two by two: four full piles merge into a single pyramid spanning all four blocks, which is broad enough
+ * to build the next tier on. Take clay back off any of the four and the merge breaks, dropping whatever
+ * was resting on it.
  */
 public class ClayPileBlock extends Block implements EntityBlock
 {
@@ -45,8 +50,18 @@ public class ClayPileBlock extends Block implements EntityBlock
 
     public static final IntegerProperty COUNT = IntegerProperty.create("count", 1, MAX_ITEMS);
 
+    /**
+     * The four two by twos that could contain a given pile, by their minimum corner, in a fixed scan
+     * order. The order only has to be stable - {@link #mergeOrigin} makes every member of a group agree
+     * on which group they are in.
+     */
+    private static final int[][] GROUP_CANDIDATES = {{-1, -1}, {-1, 0}, {0, -1}, {0, 0}};
+
     /** One shape per layer, each the union of that layer's step and every step below it. */
     private static final VoxelShape[] SHAPES = buildShapes();
+
+    /** The full pyramid's shape as seen by each quadrant of a merged two by two, indexed {@code [x][z]}. */
+    private static final VoxelShape[][] MERGED_SHAPES = buildMergedShapes();
 
     private static VoxelShape[] buildShapes()
     {
@@ -61,6 +76,102 @@ public class ClayPileBlock extends Block implements EntityBlock
             shapes[layer] = shape.optimize();
         }
         return shapes;
+    }
+
+    private static VoxelShape[][] buildMergedShapes()
+    {
+        final VoxelShape[][] shapes = new VoxelShape[2][2];
+        for (int quadrantX = 0; quadrantX < 2; quadrantX++)
+        {
+            for (int quadrantZ = 0; quadrantZ < 2; quadrantZ++)
+            {
+                VoxelShape shape = Shapes.empty();
+                for (int layer = 0; layer < ClayPileLayout.LAYERS; layer++)
+                {
+                    // The merged pyramid is 32 pixels across; clip each layer to this block's half of it
+                    final int inset = ClayPileLayout.mergedInsetOf(layer);
+                    final double minX = Mth.clamp(inset - quadrantX * 16, 0, 16);
+                    final double maxX = Mth.clamp(32 - inset - quadrantX * 16, 0, 16);
+                    final double minZ = Mth.clamp(inset - quadrantZ * 16, 0, 16);
+                    final double maxZ = Mth.clamp(32 - inset - quadrantZ * 16, 0, 16);
+                    if (maxX > minX && maxZ > minZ)
+                    {
+                        shape = Shapes.or(shape, box(
+                            minX, ClayPileLayout.bottomOf(layer), minZ,
+                            maxX, ClayPileLayout.topOf(layer), maxZ));
+                    }
+                }
+                shapes[quadrantX][quadrantZ] = shape.optimize();
+            }
+        }
+        return shapes;
+    }
+
+    /**
+     * Works out whether this pile is part of a two by two of full piles that has merged into one larger
+     * pyramid.
+     * <p>
+     * A pile can sit in up to four different two by twos, so the first valid one in a fixed scan order
+     * wins - and every member of that group has to independently pick the same group, otherwise a run of
+     * piles longer than two would produce overlapping pyramids that disagree about where the apex is.
+     * Piles left over from a larger arrangement simply stay as individual pyramids.
+     *
+     * @return the minimum corner of the merged group, or {@code null} if this pile is on its own.
+     */
+    public static @Nullable BlockPos mergeOrigin(BlockGetter level, BlockPos pos)
+    {
+        // Cheap rejection first: this runs from getShape, so most calls should cost a single state read
+        final BlockState state = level.getBlockState(pos);
+        if (!(state.getBlock() instanceof ClayPileBlock) || state.getValue(COUNT) < MAX_ITEMS)
+        {
+            return null;
+        }
+
+        final BlockPos origin = firstFullGroup(level, pos);
+        if (origin == null)
+        {
+            return null;
+        }
+        for (int dx = 0; dx < 2; dx++)
+        {
+            for (int dz = 0; dz < 2; dz++)
+            {
+                if (!origin.equals(firstFullGroup(level, origin.offset(dx, 0, dz))))
+                {
+                    return null;
+                }
+            }
+        }
+        return origin;
+    }
+
+    private static @Nullable BlockPos firstFullGroup(BlockGetter level, BlockPos pos)
+    {
+        for (int[] candidate : GROUP_CANDIDATES)
+        {
+            final BlockPos origin = pos.offset(candidate[0], 0, candidate[1]);
+            if (isFullGroup(level, origin))
+            {
+                return origin;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isFullGroup(BlockGetter level, BlockPos origin)
+    {
+        for (int dx = 0; dx < 2; dx++)
+        {
+            for (int dz = 0; dz < 2; dz++)
+            {
+                final BlockState state = level.getBlockState(origin.offset(dx, 0, dz));
+                if (!(state.getBlock() instanceof ClayPileBlock) || state.getValue(COUNT) < MAX_ITEMS)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public ClayPileBlock(Properties properties)
@@ -115,6 +226,9 @@ public class ClayPileBlock extends Block implements EntityBlock
             level.setBlock(topPos, topState.setValue(COUNT, count - taken), Block.UPDATE_CLIENTS);
         }
 
+        // This pile is no longer full, so anything the merged pyramid was holding up has to be rechecked
+        updateSupportedPiles(level, topPos);
+
         final SoundType sound = topState.getSoundType();
         level.playSound(null, topPos, sound.getBreakSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 4f, sound.getPitch() * 0.8f);
         return true;
@@ -146,17 +260,44 @@ public class ClayPileBlock extends Block implements EntityBlock
     {
         final BlockPos below = pos.below();
         final BlockState belowState = level.getBlockState(below);
-        return belowState.isFaceSturdy(level, below, Direction.UP) || belowState.is(this);
+        if (belowState.getBlock() instanceof ClayPileBlock)
+        {
+            // A pyramid does not balance on the point of another one. The only way up is a two by two of
+            // full piles that has merged into a wide pyramid, which is flat enough on top to build on.
+            return mergeOrigin(level, below) != null;
+        }
+        return belowState.isFaceSturdy(level, below, Direction.UP);
     }
 
     @Override
     protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor level, BlockPos pos, BlockPos neighborPos)
     {
-        if (direction == Direction.DOWN && !neighborState.isFaceSturdy(level, neighborPos, Direction.UP) && !neighborState.is(this))
+        if (direction == Direction.DOWN)
         {
             level.scheduleTick(pos, this, 1);
         }
         return state;
+    }
+
+    /**
+     * Rechecks every pile that might have been resting on this one. A pile above is supported by a whole
+     * two by two, three quarters of which are diagonal neighbours that never get an ordinary block update,
+     * so emptying one pile has to reach up and poke the piles above by hand.
+     */
+    private void updateSupportedPiles(Level level, BlockPos pos)
+    {
+        final BlockPos above = pos.above();
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                final BlockPos target = above.offset(dx, 0, dz);
+                if (level.getBlockState(target).is(this))
+                {
+                    level.scheduleTick(target, this, 1);
+                }
+            }
+        }
     }
 
     @Override
@@ -182,9 +323,13 @@ public class ClayPileBlock extends Block implements EntityBlock
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving)
     {
-        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof ClayPileBlockEntity pile)
+        if (!state.is(newState.getBlock()))
         {
-            pile.removeAll(stack -> popResource(level, pos, stack));
+            if (level.getBlockEntity(pos) instanceof ClayPileBlockEntity pile)
+            {
+                pile.removeAll(stack -> popResource(level, pos, stack));
+            }
+            updateSupportedPiles(level, pos);
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }
@@ -192,6 +337,11 @@ public class ClayPileBlock extends Block implements EntityBlock
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context)
     {
+        final BlockPos origin = mergeOrigin(level, pos);
+        if (origin != null)
+        {
+            return MERGED_SHAPES[pos.getX() - origin.getX()][pos.getZ() - origin.getZ()];
+        }
         return SHAPES[ClayPileLayout.layerOf(state.getValue(COUNT) - 1)];
     }
 

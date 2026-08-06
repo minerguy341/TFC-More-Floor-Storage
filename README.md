@@ -6,6 +6,15 @@ of the ground you walk on.
 - **Clay piles.** TFC's ingot pile mechanic, applied to clay. Sneak-click the ground with clay and it
   stacks into a pile of up to 64 rather than being placed as a single loose item. The pile builds itself
   into a stepped pyramid as it fills, and empties from the top down.
+
+  Piles do not stack on top of each other - a pyramid does not balance on the point of another one. To
+  build upwards, fill out a **2x2 of full piles**: the four merge into a single pyramid spanning all four
+  blocks, which is flat enough on top to take a next tier. Each block keeps its own 64 items and simply
+  draws them as its quadrant of the larger pyramid, so nothing moves between them. Take clay back off any
+  of the four and the merge breaks, dropping whatever was resting on it.
+
+  Piles left over from a larger arrangement stay as individual pyramids: in a 2x3, one 2x2 merges and the
+  spare pair does not, which keeps two overlapping pyramids from ever disagreeing about where the apex is.
 - **Leaning tools.** Aim at the side of a solid block with a tool in hand and press TFC's floor storage
   key to stand the tool up against the wall, in the style of Vintage Story. Up to four tools lean side by
   side in one block, and the block has no collision, so you can walk right through them.
