@@ -51,10 +51,11 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
         final int seed = pos.hashCode();
         final VertexConsumer buffer = buffers.getBuffer(RenderType.cutout());
 
-        // When four full piles merge, each one draws its own 64 items as one quadrant of a pyramid
-        // spanning the whole two by two. Doubling a layer's grid quadruples it, so the counts line up
-        // exactly and no items have to move between block entities.
-        final BlockPos origin = PileBlock.mergeOrigin(level, pos);
+        // A group of four draws as one pyramid spanning the whole two by two, each block contributing
+        // its own quadrant. Doubling a layer's grid quadruples it, so four full piles fill it exactly.
+        // Each block heaps towards the group's middle, which is the corner it shares with the others.
+        final BlockPos origin = PileBlock.groupOrigin(level, pos);
+        final int lean = PileBlock.leanOf(level, pos);
         final int quadrantX = origin == null ? 0 : pos.getX() - origin.getX();
         final int quadrantZ = origin == null ? 0 : pos.getZ() - origin.getZ();
 
@@ -69,8 +70,9 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
             final int layer = PileLayout.layerOf(i);
             final int within = PileLayout.indexInLayer(i);
             final int grid = PileLayout.GRID[layer];
-            final int column = within % grid;
-            final int row = within / grid;
+            final int cell = PileLayout.cellOf(layer, within, lean);
+            final int column = cell % grid;
+            final int row = cell / grid;
 
             // Offsets are from the centre of this block when standing alone, and from the centre of the
             // two by two when merged - which is a corner of this block, hence the (1 - quadrant) shift.

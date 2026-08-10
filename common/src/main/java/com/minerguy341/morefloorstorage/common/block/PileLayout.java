@@ -1,5 +1,10 @@
 package com.minerguy341.morefloorstorage.common.block;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
+import net.minecraft.util.Mth;
+
 /**
  * The shape of a pile, shared by the block's voxel shape and the renderer so the outline always
  * matches what you can see. Every kind of pile uses the same one.
@@ -53,6 +58,73 @@ public final class PileLayout
 
     /** How far each layer is pulled in from the edge of a merged pyramid's 32 pixel wide footprint. */
     private static final int[] MERGED_INSET = {0, 4, 8, 8, 10, 13};
+
+    /** The nine directions a pile can heap towards, as {@code (leanX + 1) * 3 + (leanZ + 1)}. */
+    public static final int LEAN_NONE = 4;
+
+    /**
+     * Cells of each layer, ordered outwards from wherever the pile is heaping towards.
+     * <p>
+     * A pile with no neighbours fills from its own middle: row-major order would start in a corner and
+     * make a part-filled pile look swept to one side. A pile that has neighbours instead fills from the
+     * side nearest them, so two piles put down side by side heap towards each other and four in a square
+     * grow into one mound from the first item, rather than four separate ones that only join up later.
+     */
+    private static final int[][][] FILL_ORDER = buildFillOrder();
+
+    private static int[][][] buildFillOrder()
+    {
+        final int[][][] order = new int[LAYERS][9][];
+        for (int layer = 0; layer < LAYERS; layer++)
+        {
+            final int grid = GRID[layer];
+            final float middle = (grid - 1) / 2f;
+            for (int leanX = -1; leanX <= 1; leanX++)
+            {
+                for (int leanZ = -1; leanZ <= 1; leanZ++)
+                {
+                    // Start from the middle, pushed all the way to the edge in whichever way it leans
+                    final double fromX = middle + leanX * middle;
+                    final double fromZ = middle + leanZ * middle;
+                    final Integer[] cells = new Integer[grid * grid];
+                    for (int cell = 0; cell < cells.length; cell++)
+                    {
+                        cells[cell] = cell;
+                    }
+                    // Stable, so cells equally far out keep a predictable order around the ring
+                    Arrays.sort(cells, Comparator.comparingDouble(cell -> {
+                        final double x = (cell % grid) - fromX;
+                        final double z = (double) (cell / grid) - fromZ;
+                        return x * x + z * z;
+                    }));
+                    final int[] flat = new int[cells.length];
+                    for (int cell = 0; cell < cells.length; cell++)
+                    {
+                        flat[cell] = cells[cell];
+                    }
+                    order[layer][lean(leanX, leanZ)] = flat;
+                }
+            }
+        }
+        return order;
+    }
+
+    /**
+     * @return the index used to look up a fill order, for a pile heaping towards {@code (leanX, leanZ)}
+     */
+    public static int lean(int leanX, int leanZ)
+    {
+        return (Mth.clamp(leanX, -1, 1) + 1) * 3 + (Mth.clamp(leanZ, -1, 1) + 1);
+    }
+
+    /**
+     * @param indexInLayer a position within one layer, counting from zero
+     * @return the cell it fills, as {@code row * grid + column}
+     */
+    public static int cellOf(int layer, int indexInLayer, int lean)
+    {
+        return FILL_ORDER[layer][lean][indexInLayer];
+    }
 
     /**
      * @param index a zero-based position in the pile, in the order items were added

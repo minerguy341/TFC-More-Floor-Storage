@@ -32,9 +32,11 @@ public final class Piling
 
         if (clickedState.is(pileBlock))
         {
-            // Walk up the column until we find a pile with room, or run off the top of it
-            BlockPos target = clicked;
-            BlockState targetState = clickedState;
+            // A group of four is one pile, so an item put into any of them goes to whichever is lowest
+            // and the shared heap grows evenly
+            final BlockPos group = PileBlock.groupOrigin(level, clicked);
+            BlockPos target = group != null ? PileBlock.memberToFill(level, group) : clicked;
+            BlockState targetState = level.getBlockState(target);
             while (targetState.is(pileBlock) && targetState.getValue(PileBlock.COUNT) >= PileBlock.MAX_ITEMS)
             {
                 target = target.above();
