@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.minerguy341.morefloorstorage.MoreFloorStorage;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
@@ -20,6 +21,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 /**
  * Per-item models for the lumps in a pile.
@@ -37,7 +39,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class PileModels
 {
-    private static final String DIRECTORY = "block/pile/";
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    /** No trailing slash: ResourceManager.listResources rejects one, and ids are built by joining. */
+    private static final String DIRECTORY = "block/pile";
 
     /**
      * The width a lump model is authored at, matching TerraFirmaCraft's groundcover models. A model this
@@ -64,7 +69,7 @@ public final class PileModels
 
     public static ResourceLocation modelIdFor(ResourceLocation itemId)
     {
-        return MoreFloorStorage.id(DIRECTORY + itemId.getNamespace() + "/" + itemId.getPath());
+        return MoreFloorStorage.id(DIRECTORY + "/" + itemId.getNamespace() + "/" + itemId.getPath());
     }
 
     /**
@@ -72,6 +77,22 @@ public final class PileModels
      * every file present under the directory is registered by hand.
      */
     public static void registerAdditional(ModelEvent.RegisterAdditional event)
+    {
+        // Lump models are cosmetic, and this walks whatever resource packs happen to be installed. A
+        // failure here used to take the whole client down, and misleadingly: the broken resource reload
+        // restarted mod loading, which made another mod's non-idempotent setup run twice and crash
+        // first. Better to lose the models than the game.
+        try
+        {
+            discover(event);
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Failed to discover pile lump models; piles will fall back to plain lumps", e);
+        }
+    }
+
+    private static void discover(ModelEvent.RegisterAdditional event)
     {
         Minecraft.getInstance().getResourceManager()
             .listResources("models/" + DIRECTORY, path -> path.getPath().endsWith(".json"))
