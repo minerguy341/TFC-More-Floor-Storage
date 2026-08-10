@@ -1,0 +1,31 @@
+# eclipse
+bin/
+*.launch
+.settings/
+.metadata/
+.classpath
+.project
+
+# idea
+out/
+*.ipr
+*.iws
+*.iml
+.idea/
+
+# gradle
+build/
+.gradle/
+
+# forge runs
+run/
+run-data/
+eclipse/
+logs/
+
+# OS / editor
+.DS_Store
+*.log
+
+# Forge MDK leftovers
+forge*changelog.txt
