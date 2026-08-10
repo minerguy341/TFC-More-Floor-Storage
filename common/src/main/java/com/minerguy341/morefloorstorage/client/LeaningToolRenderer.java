@@ -25,6 +25,12 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
     private static final float LEAN_ANGLE = 14f;
     /** Spacing between neighbouring tools, in blocks. */
     private static final float SLOT_SPACING = 0.22f;
+    /**
+     * Turn needed to stand a flat item sprite on end. Minecraft draws tools corner to corner with the
+     * head at the top left, so the quarter turn has to be clockwise; anticlockwise lays them on their
+     * side with the head pointing left.
+     */
+    private static final float UPRIGHT_TURN = -45f;
 
     @Override
     public void render(LeaningToolBlockEntity leaning, float partialTick, PoseStack pose, MultiBufferSource buffers, int packedLight, int packedOverlay)
@@ -57,7 +63,7 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flatSprite)
             {
-                pose.mulPose(Axis.ZP.rotationDegrees(45f));
+                pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
             }
             pose.scale(0.7f, 0.7f, 0.7f);
 
