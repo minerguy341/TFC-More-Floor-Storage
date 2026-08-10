@@ -5,6 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "tfcmorefloorstorage.refmap.json",
   "mixins": [
+    "IngotPileBlockEntityAccessor",
+    "IngotPileEntryAccessor"
   ],
   "client": [
     "IngotPileBlockModelMixin",

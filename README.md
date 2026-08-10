@@ -22,6 +22,10 @@ This mod mixins into those `render` methods and rebuilds the same layout with **
 
 Capacity (`COUNT` / `DOUBLE_COUNT`) is **not** changed yet — only the mesh.
 
+### Vanilla clay special case
+
+If a pile entry is `minecraft:clay_ball`, that piece is drawn at **half length** (~7.5 texels vs 7 wide → square blob), centered in its slot, and textured with `minecraft:block/clay`. Other metals keep the normal bar shape.
+
 ## Tweaking
 
 Edit `config/tfcmorefloorstorage-client.toml` after first launch, then press **F3+T** (or relog) so static pile models rebuild.
