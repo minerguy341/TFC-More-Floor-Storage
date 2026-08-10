@@ -164,9 +164,15 @@ neoForge {
 }
 
 dependencies {
-    // TerraFirmaCraft - a hard dependency, compiled and run against
-    implementation("maven.modrinth:terrafirmacraft:$tfcVersion")
+    // TerraFirmaCraft - a hard dependency, compiled and run against.
+    //
+    // Deliberately not transitive. The Modrinth maven generates a POM from whatever the project lists
+    // as dependencies on Modrinth, so pulling TFC transitively drags its own copies of Patchouli and
+    // friends onto the run classpath alongside the ones declared here. Two jars of the same mod in a
+    // dev run get loaded as two mods, and setup then runs twice - which surfaces a long way from the
+    // cause, as "Multiblock tfc:bloomery already registered" out of Patchouli.
+    implementation("maven.modrinth:terrafirmacraft:$tfcVersion") { isTransitive = false }
 
-    // Patchouli is a required dependency of TFC itself, so dev runs need it on the classpath
+    // So every mod on the run classpath is one this file names. Patchouli is required by TFC itself.
     optionalVersionProp("patchouliVersion")?.let { runtimeOnly("vazkii.patchouli:Patchouli:$it") }
 }
