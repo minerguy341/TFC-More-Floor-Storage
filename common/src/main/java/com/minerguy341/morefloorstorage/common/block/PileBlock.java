@@ -36,9 +36,13 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * TerraFirmaCraft's ingot pile, generalised. Items sneak-placed on the ground stack into a pile of up to
- * {@link #MAX_ITEMS} instead of being placed as a single loose item, and clicking the pile takes the top
- * one back off. The pile grows as it fills, in the stepped pyramid described by {@link PileLayout}.
+ * TerraFirmaCraft's ingot pile, generalised. Items sneak-placed on the ground stack into a pile instead
+ * of being placed as a single loose item, and clicking the pile takes the top one back off. The pile
+ * grows as it fills, in the stepped pyramid described by {@link PileLayout}.
+ * <p>
+ * How much fits depends on where it stands. A heap in the open slumps into a pyramid and holds 64, but
+ * anything holding it in lets it stay wider for longer: 95 against a wall, 125 in a corner, 150 in a
+ * pit, where it is a straight column. Take the wall away and whatever no longer fits spills out.
  * <p>
  * A pyramid will not balance on the point of another one, so piles do not stack. The way up is to fill a
  * two by two: four full piles merge into a single pyramid spanning all four blocks, which is broad enough
@@ -51,7 +55,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PileBlock extends Block implements EntityBlock
 {
-    public static final int MAX_ITEMS = PileLayout.MAX_ITEMS;
+    /** The most any pile can hold, which is what the count property has to be able to express. */
+    public static final int MAX_ITEMS = PileLayout.MAX_CAPACITY;
 
     public static final IntegerProperty COUNT = IntegerProperty.create("count", 1, MAX_ITEMS);
 
@@ -66,34 +71,40 @@ public class PileBlock extends Block implements EntityBlock
     private static final int[][] GROUP_CANDIDATES = {{-1, -1}, {-1, 0}, {0, -1}, {0, 0}};
 
     /** One shape per layer, each the union of that layer's step and every step below it. */
-    private static final VoxelShape[] SHAPES = buildShapes();
+    private static final VoxelShape[][] SHAPES = buildShapes();
 
     /**
      * A grouped pile's shape, indexed {@code [layer][quadrantX][quadrantZ]}. The outline spans the whole
      * two by two - deliberately reaching outside its own block - so a group reads and targets as one
      * pile. Collision keeps to the block it belongs to.
      */
-    private static final VoxelShape[][][] GROUP_OUTLINES = buildGroupShapes(false);
-    private static final VoxelShape[][][] GROUP_COLLISION = buildGroupShapes(true);
+    private static final VoxelShape[][][][] GROUP_OUTLINES = buildGroupShapes(false);
+    private static final VoxelShape[][][][] GROUP_COLLISION = buildGroupShapes(true);
 
-    private static VoxelShape[] buildShapes()
+    private static VoxelShape[][] buildShapes()
     {
-        final VoxelShape[] shapes = new VoxelShape[PileLayout.LAYERS];
-        VoxelShape shape = Shapes.empty();
-        for (int layer = 0; layer < PileLayout.LAYERS; layer++)
+        final VoxelShape[][] shapes = new VoxelShape[PileLayout.MAX_WALLS + 1][PileLayout.LAYERS];
+        for (int walls = 0; walls <= PileLayout.MAX_WALLS; walls++)
         {
-            final int inset = PileLayout.insetOf(layer);
-            shape = Shapes.or(shape, box(
-                inset, PileLayout.bottomOf(layer), inset,
-                16 - inset, PileLayout.topOf(layer), 16 - inset));
-            shapes[layer] = shape.optimize();
+            VoxelShape shape = Shapes.empty();
+            for (int layer = 0; layer < PileLayout.LAYERS; layer++)
+            {
+                final int inset = PileLayout.insetOf(layer, walls);
+                shape = Shapes.or(shape, box(
+                    inset, PileLayout.bottomOf(layer), inset,
+                    16 - inset, PileLayout.topOf(layer), 16 - inset));
+                shapes[walls][layer] = shape.optimize();
+            }
         }
         return shapes;
     }
 
-    private static VoxelShape[][][] buildGroupShapes(boolean clipToBlock)
+    private static VoxelShape[][][][] buildGroupShapes(boolean clipToBlock)
     {
-        final VoxelShape[][][] shapes = new VoxelShape[PileLayout.LAYERS][2][2];
+        final VoxelShape[][][][] shapes =
+            new VoxelShape[PileLayout.MAX_WALLS + 1][PileLayout.LAYERS][2][2];
+        for (int walls = 0; walls <= PileLayout.MAX_WALLS; walls++)
+        {
         for (int quadrantX = 0; quadrantX < 2; quadrantX++)
         {
             for (int quadrantZ = 0; quadrantZ < 2; quadrantZ++)
@@ -102,7 +113,7 @@ public class PileBlock extends Block implements EntityBlock
                 for (int layer = 0; layer < PileLayout.LAYERS; layer++)
                 {
                     // The group's pyramid is 32 pixels across, offset so this block sits at the origin
-                    final int inset = PileLayout.mergedInsetOf(layer);
+                    final int inset = PileLayout.mergedInsetOf(layer, walls);
                     double minX = inset - quadrantX * 16;
                     double maxX = 32 - inset - quadrantX * 16;
                     double minZ = inset - quadrantZ * 16;
@@ -120,9 +131,10 @@ public class PileBlock extends Block implements EntityBlock
                             minX, PileLayout.bottomOf(layer), minZ,
                             maxX, PileLayout.topOf(layer), maxZ));
                     }
-                    shapes[layer][quadrantX][quadrantZ] = shape.optimize();
+                    shapes[walls][layer][quadrantX][quadrantZ] = shape.optimize();
                 }
             }
+        }
         }
         return shapes;
     }
@@ -200,11 +212,13 @@ public class PileBlock extends Block implements EntityBlock
      */
     public static boolean isGroupFull(BlockGetter level, BlockPos origin)
     {
+        // Capacity is uniform across a group, so work it out once rather than per member
+        final int capacity = capacityAt(level, origin);
         for (int dx = 0; dx < 2; dx++)
         {
             for (int dz = 0; dz < 2; dz++)
             {
-                if (level.getBlockState(origin.offset(dx, 0, dz)).getValue(COUNT) < MAX_ITEMS)
+                if (level.getBlockState(origin.offset(dx, 0, dz)).getValue(COUNT) < capacity)
                 {
                     return false;
                 }
@@ -217,15 +231,16 @@ public class PileBlock extends Block implements EntityBlock
      * The tallest layer any member of the group has reached, which is how tall the group's shared
      * pyramid is drawn and outlined.
      */
-    private static int groupLayer(BlockGetter level, BlockPos origin)
+    private static int groupLayer(BlockGetter level, BlockPos origin, int walls)
     {
         int layer = 0;
         for (int dx = 0; dx < 2; dx++)
         {
             for (int dz = 0; dz < 2; dz++)
             {
+                final BlockPos member = origin.offset(dx, 0, dz);
                 layer = Math.max(layer, PileLayout.layerOf(
-                    level.getBlockState(origin.offset(dx, 0, dz)).getValue(COUNT) - 1));
+                    level.getBlockState(member).getValue(COUNT) - 1, walls));
             }
         }
         return layer;
@@ -408,9 +423,43 @@ public class PileBlock extends Block implements EntityBlock
     }
 
     /**
+     * How many sides are holding this pile in, and so how much it can hold.
+     * <p>
+     * Within a group the answer has to be the same for all four, or their quadrants would be different
+     * sizes and the shared pyramid would not line up. It is the best-braced member that decides, never
+     * the worst: a pile's capacity must never fall when a group forms around it, or whatever it is
+     * already holding would have nowhere to go.
+     */
+    public static int wallsAt(BlockGetter level, BlockPos pos)
+    {
+        final BlockPos origin = groupOrigin(level, pos);
+        if (origin == null)
+        {
+            return walledSides(level, pos);
+        }
+        int walls = 0;
+        for (int dx = 0; dx < 2; dx++)
+        {
+            for (int dz = 0; dz < 2; dz++)
+            {
+                walls = Math.max(walls, walledSides(level, origin.offset(dx, 0, dz)));
+            }
+        }
+        return walls;
+    }
+
+    /**
+     * @return how much this pile can hold where it stands.
+     */
+    public static int capacityAt(BlockGetter level, BlockPos pos)
+    {
+        return PileLayout.capacity(wallsAt(level, pos));
+    }
+
+    /**
      * @return how many of the four sides of {@code pos} are solid enough to hold a heap of material in.
      */
-    private static int walledSides(LevelReader level, BlockPos pos)
+    private static int walledSides(BlockGetter level, BlockPos pos)
     {
         int walls = 0;
         for (Direction direction : Direction.Plane.HORIZONTAL)
@@ -464,6 +513,21 @@ public class PileBlock extends Block implements EntityBlock
         if (!canSurvive(state, level, pos))
         {
             level.destroyBlock(pos, true);
+            return;
+        }
+
+        // Take a wall away and the heap it was holding in slumps: anything over what this spot can now
+        // hold spills out rather than sitting in a pile that is no longer shaped to contain it
+        final int capacity = capacityAt(level, pos);
+        final int count = state.getValue(COUNT);
+        if (count > capacity && level.getBlockEntity(pos) instanceof PileBlockEntity pile)
+        {
+            for (int i = count; i > capacity; i--)
+            {
+                popResource(level, pos, pile.removeTop());
+            }
+            level.setBlock(pos, state.setValue(COUNT, capacity), Block.UPDATE_CLIENTS);
+            updateSupportedPiles(level, pos);
         }
     }
 
@@ -505,14 +569,16 @@ public class PileBlock extends Block implements EntityBlock
         return shapeAt(state, level, pos, GROUP_COLLISION);
     }
 
-    private VoxelShape shapeAt(BlockState state, BlockGetter level, BlockPos pos, VoxelShape[][][] grouped)
+    private VoxelShape shapeAt(BlockState state, BlockGetter level, BlockPos pos, VoxelShape[][][][] grouped)
     {
+        final int walls = wallsAt(level, pos);
         final BlockPos origin = groupOrigin(level, pos);
         if (origin != null)
         {
-            return grouped[groupLayer(level, origin)][pos.getX() - origin.getX()][pos.getZ() - origin.getZ()];
+            return grouped[walls][groupLayer(level, origin, walls)]
+                [pos.getX() - origin.getX()][pos.getZ() - origin.getZ()];
         }
-        return SHAPES[PileLayout.layerOf(state.getValue(COUNT) - 1)];
+        return SHAPES[walls][PileLayout.layerOf(state.getValue(COUNT) - 1, walls)];
     }
 
     @Override

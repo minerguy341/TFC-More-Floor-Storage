@@ -37,7 +37,8 @@ public final class Piling
             final BlockPos group = PileBlock.groupOrigin(level, clicked);
             BlockPos target = group != null ? PileBlock.memberToFill(level, group) : clicked;
             BlockState targetState = level.getBlockState(target);
-            while (targetState.is(pileBlock) && targetState.getValue(PileBlock.COUNT) >= PileBlock.MAX_ITEMS)
+            while (targetState.is(pileBlock)
+                && targetState.getValue(PileBlock.COUNT) >= PileBlock.capacityAt(level, target))
             {
                 target = target.above();
                 targetState = level.getBlockState(target);
@@ -86,7 +87,8 @@ public final class Piling
     private static InteractionResult addToPile(Level level, BlockPos pos, BlockState state, @Nullable Player player, ItemStack stack)
     {
         final int count = state.getValue(PileBlock.COUNT);
-        if (count >= PileBlock.MAX_ITEMS)
+        // How much fits depends on where it stands: walls hold the heap in and let it take more
+        if (count >= PileBlock.capacityAt(level, pos))
         {
             return InteractionResult.FAIL;
         }

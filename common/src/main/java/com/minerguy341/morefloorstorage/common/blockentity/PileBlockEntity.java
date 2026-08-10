@@ -41,6 +41,7 @@ public class PileBlockEntity extends SyncedBlockEntity
      */
     public boolean addItem(ItemStack stack)
     {
+        // The block decides how much fits where it stands; this is only the backstop
         if (stack.isEmpty() || stacks.size() >= PileBlock.MAX_ITEMS)
         {
             return false;

@@ -56,6 +56,8 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
         // Each block heaps towards the group's middle, which is the corner it shares with the others.
         final BlockPos origin = PileBlock.groupOrigin(level, pos);
         final int lean = PileBlock.leanOf(level, pos);
+        // Walls widen every layer, so they decide the grid the lumps are laid out on
+        final int walls = PileBlock.wallsAt(level, pos);
         final int quadrantX = origin == null ? 0 : pos.getX() - origin.getX();
         final int quadrantZ = origin == null ? 0 : pos.getZ() - origin.getZ();
 
@@ -67,10 +69,10 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
                 continue;
             }
 
-            final int layer = PileLayout.layerOf(i);
-            final int within = PileLayout.indexInLayer(i);
-            final int grid = PileLayout.GRID[layer];
-            final int cell = PileLayout.cellOf(layer, within, lean);
+            final int layer = PileLayout.layerOf(i, walls);
+            final int within = PileLayout.indexInLayer(i, walls);
+            final int grid = PileLayout.gridOf(layer, walls);
+            final int cell = PileLayout.cellOf(layer, within, walls, lean);
             final int column = cell % grid;
             final int row = cell / grid;
 
@@ -80,13 +82,13 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
             final float z;
             if (origin == null)
             {
-                x = 0.5f + PileLayout.offsetInLayer(layer, column);
-                z = 0.5f + PileLayout.offsetInLayer(layer, row);
+                x = 0.5f + PileLayout.offsetInLayer(layer, column, walls);
+                z = 0.5f + PileLayout.offsetInLayer(layer, row, walls);
             }
             else
             {
-                x = (1 - quadrantX) + PileLayout.offsetInMergedLayer(layer, quadrantX * grid + column);
-                z = (1 - quadrantZ) + PileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row);
+                x = (1 - quadrantX) + PileLayout.offsetInMergedLayer(layer, quadrantX * grid + column, walls);
+                z = (1 - quadrantZ) + PileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row, walls);
             }
 
             pose.pushPose();
