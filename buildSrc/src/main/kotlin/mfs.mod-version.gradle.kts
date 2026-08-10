@@ -130,7 +130,9 @@ repositories {
 }
 
 neoForge {
-    version.set(neoForgeVersion)
+    // A plain setter, not a Property - ModDevExtension.getVersion() returns String - so this has to be
+    // an assignment. `version.set(...)` silently resolves to Project.version instead and fails to compile.
+    version = neoForgeVersion
 
     optionalVersionProp("parchmentVersion")?.let { mappings ->
         parchment {

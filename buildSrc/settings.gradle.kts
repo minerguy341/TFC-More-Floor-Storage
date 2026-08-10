@@ -2,9 +2,10 @@ dependencyResolutionManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        exclusiveContent {
-            forRepository { maven("https://maven.neoforged.net/releases") }
-            filter { includeGroupAndSubgroups("net.neoforged") }
+        // Not exclusiveContent: the plugin is on the Gradle Plugin Portal as well, and pinning the
+        // group here makes the NeoForged maven a hard requirement just to compile buildSrc.
+        maven("https://maven.neoforged.net/releases") {
+            content { includeGroupAndSubgroups("net.neoforged") }
         }
     }
 }
