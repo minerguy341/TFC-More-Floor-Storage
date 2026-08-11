@@ -26,6 +26,8 @@ Capacity (`COUNT` / `DOUBLE_COUNT`) is **not** changed yet — only the mesh.
 
 If a pile entry is `minecraft:clay_ball`, that piece is drawn at **half length** (~7.5 texels vs 7 wide → square blob), centered in its slot, and textured with `minecraft:block/clay`. Other metals keep the normal bar shape.
 
+Clay balls are added to `tfc:pileable_ingots`, so **shift-click** places them like ingots (same as TFC metal piling). Air-click knapping is unchanged.
+
 ## Tweaking
 
 Edit `config/tfcmorefloorstorage-client.toml` after first launch, then press **F3+T** (or relog) so static pile models rebuild.
