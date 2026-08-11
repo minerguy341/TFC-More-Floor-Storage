@@ -60,23 +60,18 @@ public final class ToolLeaning
             return false;
         }
 
-        final Direction facing = face.getOpposite();
         final BlockPos target = hitPos.relative(face);
-
-        // Fill an existing lean on this wall cell (or an immediate neighbour along the wall)
-        // up to capacity before starting a new block — avoids one-tool-per-column by accident.
-        if (insertIntoExisting(level, target, facing, player, held, hit.getLocation()))
-        {
-            return true;
-        }
-
         final BlockState targetState = level.getBlockState(target);
+        if (targetState.is(leaningBlock))
+        {
+            return insert(level, target, player, held, LeaningToolBlock.slotFromHit(targetState, target, hit.getLocation()));
+        }
         if (!targetState.canBeReplaced())
         {
             return false;
         }
 
-        final BlockState newState = leaningBlock.defaultBlockState().setValue(LeaningToolBlock.FACING, facing);
+        final BlockState newState = leaningBlock.defaultBlockState().setValue(LeaningToolBlock.FACING, face.getOpposite());
         if (!newState.canSurvive(level, target))
         {
             return false;
@@ -89,35 +84,6 @@ public final class ToolLeaning
             return false;
         }
         return true;
-    }
-
-    /**
-     * Tries the aimed cell first, then left/right along the wall, so repeated leans against the
-     * same stretch of wall stack into one block until it is full.
-     */
-    private static boolean insertIntoExisting(Level level, BlockPos target, Direction facing, Player player, ItemStack held, net.minecraft.world.phys.Vec3 hitLocation)
-    {
-        final Direction along = facing.getClockWise();
-        final BlockPos[] candidates = {
-            target,
-            target.relative(along),
-            target.relative(along.getOpposite())
-        };
-
-        for (final BlockPos pos : candidates)
-        {
-            final BlockState state = level.getBlockState(pos);
-            if (!state.is(ModBlocks.LEANING_TOOL.get()) || state.getValue(LeaningToolBlock.FACING) != facing)
-            {
-                continue;
-            }
-            if (!(level.getBlockEntity(pos) instanceof LeaningToolBlockEntity leaning) || !leaning.canAccept(held))
-            {
-                continue;
-            }
-            return insert(level, pos, player, held, LeaningToolBlock.slotFromHit(state, pos, hitLocation));
-        }
-        return false;
     }
 
     /**
