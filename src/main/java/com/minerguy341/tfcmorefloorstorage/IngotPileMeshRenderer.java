@@ -24,7 +24,8 @@ import net.minecraft.world.item.Items;
  * Layout (single): layers of 8 on a 4×2 grid, alternating 90° yaw.
  * Layout (double): layers of 6 on a 3×2 grid, alternating 90° yaw.
  * <p>
- * Special case: vanilla {@link Items#CLAY_BALL} uses half length (≈ square blob) and the clay block texture.
+ * Special case: vanilla {@link Items#CLAY_BALL} uses half length (≈ square blob), the clay
+ * block texture, and a neat same-orientation stack (no alternating 90° criss-cross).
  */
 public final class IngotPileMeshRenderer
 {
@@ -140,12 +141,14 @@ public final class IngotPileMeshRenderer
 
             final int layer = (i + perLayer) / perLayer;
             final boolean oddLayer = (layer % 2) == 1;
+            // Clay: same orientation every layer (no TFC criss-cross), tighter 4×2 / 3×2 packing for square blobs.
+            final float cellZ = vanillaClay ? 0.25f : 0.5f;
             final float x = (i % gridX) * cellX;
             final float y = (layer - 1) * layerHeight;
-            final float z = i % perLayer >= gridX ? 0.5f : 0;
+            final float z = i % perLayer >= gridX ? cellZ : 0;
 
             poseStack.pushPose();
-            if (oddLayer)
+            if (oddLayer && !vanillaClay)
             {
                 poseStack.translate(0.5f, 0f, 0.5f);
                 poseStack.mulPose(Axis.YP.rotationDegrees(90f));
@@ -164,6 +167,7 @@ public final class IngotPileMeshRenderer
 
             final CuboidBounds bounds = cuboidBounds(scale, insetTexels, pieceWidth, pieceHeight, pieceLength, quirk);
             final float bevelWorld = scale * bevel;
+            final boolean invertNormal = oddLayer && !vanillaClay;
 
             RenderHelpers.renderTexturedTrapezoidalCuboid(
                 poseStack,
@@ -184,7 +188,7 @@ public final class IngotPileMeshRenderer
                 pieceWidth,
                 pieceHeight,
                 pieceLength,
-                oddLayer
+                invertNormal
             );
 
             poseStack.popPose();

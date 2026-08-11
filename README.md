@@ -24,7 +24,7 @@ Capacity (`COUNT` / `DOUBLE_COUNT`) is **not** changed yet — only the mesh.
 
 ### Vanilla clay special case
 
-If a pile entry is `minecraft:clay_ball`, that piece is drawn at **half length** (~7.5 texels vs 7 wide → square blob), centered in its slot, and textured with `minecraft:block/clay`. Other metals keep the normal bar shape.
+If a pile entry is `minecraft:clay_ball`, that piece is drawn at **half length** (~7.5 texels vs 7 wide → square blob), centered in its slot, textured with `minecraft:block/clay`, and stacked in a **neat same-orientation grid** (no alternating 90° criss-cross). Row spacing is tightened to `0.25` so the short blobs sit as a compact stack. Other metals keep the normal bar shape and criss-cross layout.
 
 Clay balls are added to `tfc:pileable_ingots`, so **shift-click** places them like ingots (same as TFC metal piling). Air-click knapping is unchanged.
 
