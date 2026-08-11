@@ -478,13 +478,25 @@ public class PileBlock extends Block implements EntityBlock
         int walls = 0;
         for (Direction direction : Direction.Plane.HORIZONTAL)
         {
-            final BlockPos side = pos.relative(direction);
-            if (level.getBlockState(side).isFaceSturdy(level, side, direction.getOpposite()))
+            if (isWall(level, pos, direction))
             {
                 walls++;
             }
         }
         return walls;
+    }
+
+    /**
+     * @return whether whatever is on this side of {@code pos} would hold a heap of material in.
+     */
+    private static boolean isWall(BlockGetter level, BlockPos pos, Direction direction)
+    {
+        final BlockPos side = pos.relative(direction);
+        final BlockState sideState = level.getBlockState(side);
+        // Another heap is no wall - it slumps just the same. Skipping it up front also keeps this from
+        // asking a neighbouring pile how sturdy it is, which asks this one straight back.
+        return !(sideState.getBlock() instanceof PileBlock)
+            && sideState.isFaceSturdy(level, side, direction.getOpposite());
     }
 
     @Override
@@ -598,8 +610,7 @@ public class PileBlock extends Block implements EntityBlock
     {
         for (Direction direction : Direction.Plane.HORIZONTAL)
         {
-            final BlockPos side = pos.relative(direction);
-            if (!level.getBlockState(side).isFaceSturdy(level, side, direction.getOpposite()))
+            if (!isWall(level, pos, direction))
             {
                 return direction;
             }
@@ -643,6 +654,24 @@ public class PileBlock extends Block implements EntityBlock
     {
         // Collision stays inside the block; only the outline is allowed to span the group
         return shapeAt(state, level, pos, GROUP_COLLISION);
+    }
+
+    /**
+     * The shape another block asks about when it wants to know whether it can lean on this one.
+     * <p>
+     * Deliberately blind to its surroundings, which is what makes it safe to answer. A pile's real shape
+     * depends on the walls around it, so working it out means asking each neighbour how sturdy it is -
+     * and because piles declare a dynamic shape, that question is answered live rather than from the
+     * table Minecraft precomputes for ordinary blocks. It comes back here, and a pile beside a pile
+     * asks each other until the stack runs out.
+     * <p>
+     * The unwalled shape is the honest answer anyway: what a pile can be leaned on for should not
+     * depend on what is leaning on it.
+     */
+    @Override
+    protected VoxelShape getBlockSupportShape(BlockState state, BlockGetter level, BlockPos pos)
+    {
+        return SHAPES[0][PileLayout.layerOf(state.getValue(COUNT) - 1, 0)];
     }
 
     private VoxelShape shapeAt(BlockState state, BlockGetter level, BlockPos pos, VoxelShape[][][][] grouped)
