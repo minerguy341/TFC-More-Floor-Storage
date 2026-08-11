@@ -4,16 +4,21 @@ Experimental TerraFirmaCraft addon (Minecraft **1.20.1** / Forge **47.3.x**) for
 
 ## Clay pile (custom block)
 
-Shift-click **vanilla clay balls** to place a dedicated `clay_pile` block (not the metal ingot pile).
+Shift-click **pileable clays** to place a dedicated `clay_pile` block (not the metal ingot pile):
+
+- `minecraft:clay_ball`
+- `tfc:kaolin_clay`
+- `tfc:fire_clay`
 
 | | |
 |--|--|
 | Capacity | **128** (double an ingot pile’s 64) |
 | Layout | **4×4** neat grid per layer, **8** layers |
-| Mesh | Half-length square blobs (`7×4×7.5` texels), clay texture |
+| Mesh | Half-length square blobs (`7×4×7.5` texels) |
 | Origin | First blob flush to the **block corner** (no centering / criss-cross) |
+| Textures | Per piece: vanilla clay / white kaolin / fire clay block |
 
-Click without shift to take clay off the top of the stack. Air-click knapping is unchanged.
+Mixed clay types in one pile are allowed (like mixed metal ingot piles). Click without shift to take from the top. Air-click knapping is unchanged.
 
 ## Metal ingot mesh (optional)
 

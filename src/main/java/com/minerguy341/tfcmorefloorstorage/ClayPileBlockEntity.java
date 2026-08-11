@@ -53,6 +53,15 @@ public class ClayPileBlockEntity extends TFCBlockEntity
         return stacks.size();
     }
 
+    public ItemStack stackAt(int index)
+    {
+        if (index < 0 || index >= stacks.size())
+        {
+            return ItemStack.EMPTY;
+        }
+        return stacks.get(index);
+    }
+
     public ItemStack getPickedItemStack()
     {
         return stacks.isEmpty() ? ItemStack.EMPTY : stacks.get(0).copy();

@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:clay_ball",
+    "tfc:kaolin_clay",
+    "tfc:fire_clay"
+  ]
+}

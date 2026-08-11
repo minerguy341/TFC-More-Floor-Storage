@@ -6,20 +6,26 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.dries007.tfc.client.RenderHelpers;
 import net.dries007.tfc.client.model.SimpleStaticBlockEntityModel;
+import net.dries007.tfc.common.items.TFCItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 /**
  * Neat clay pile mesh: half-length square blobs, 4×4 per layer from the block corner, no criss-cross.
- * Capacity 128 = 16 × 8 layers.
+ * Capacity 128 = 16 × 8 layers. Supports vanilla clay, kaolin clay, and fire clay textures.
  */
 public enum ClayPileBlockModel implements SimpleStaticBlockEntityModel<ClayPileBlockModel, ClayPileBlockEntity>
 {
     INSTANCE;
 
-    private static final ResourceLocation CLAY_TEXTURE = new ResourceLocation("minecraft", "block/clay");
+    private static final ResourceLocation VANILLA_CLAY_TEXTURE = new ResourceLocation("minecraft", "block/clay");
+    private static final ResourceLocation KAOLIN_CLAY_TEXTURE = new ResourceLocation("tfc", "block/white_kaolin_clay");
+    private static final ResourceLocation FIRE_CLAY_TEXTURE = new ResourceLocation("tfc", "block/fire_clay_block");
+
     private static final float WIDTH_TEXELS = 7f;
     private static final float HEIGHT_TEXELS = 4f;
     private static final float LENGTH_TEXELS = 7.5f; // half of TFC's 15
@@ -32,11 +38,9 @@ public enum ClayPileBlockModel implements SimpleStaticBlockEntityModel<ClayPileB
         final int count = pile.getBlockState().getValue(ClayPileBlock.COUNT);
         final Function<ResourceLocation, TextureAtlasSprite> atlas =
             Minecraft.getInstance().getTextureAtlas(RenderHelpers.BLOCKS_ATLAS);
-        final TextureAtlasSprite sprite = atlas.apply(CLAY_TEXTURE);
 
         final float scale = 0.0625f / 2f;
         final float bevel = scale; // 1 texel
-        // Flush to the corner — no inset padding.
         final float minX = 0f;
         final float minY = 0f;
         final float minZ = 0f;
@@ -44,8 +48,13 @@ public enum ClayPileBlockModel implements SimpleStaticBlockEntityModel<ClayPileB
         final float maxY = scale * HEIGHT_TEXELS;
         final float maxZ = scale * LENGTH_TEXELS;
 
+        TextureAtlasSprite particle = null;
         for (int i = 0; i < count; i++)
         {
+            final ItemStack stack = pile.stackAt(i);
+            final TextureAtlasSprite sprite = atlas.apply(textureFor(stack));
+            particle = sprite;
+
             final int layer = i / ClayPileBlock.PER_LAYER;
             final int indexInLayer = i % ClayPileBlock.PER_LAYER;
             final float x = (indexInLayer % 4) * CELL;
@@ -80,7 +89,25 @@ public enum ClayPileBlockModel implements SimpleStaticBlockEntityModel<ClayPileB
             poseStack.popPose();
         }
 
-        return sprite;
+        return particle != null ? particle : atlas.apply(VANILLA_CLAY_TEXTURE);
+    }
+
+    static ResourceLocation textureFor(ItemStack stack)
+    {
+        if (stack.is(TFCItems.KAOLIN_CLAY.get()))
+        {
+            return KAOLIN_CLAY_TEXTURE;
+        }
+        if (stack.is(TFCItems.FIRE_CLAY.get()))
+        {
+            return FIRE_CLAY_TEXTURE;
+        }
+        // Vanilla clay_ball and any unexpected fallback
+        if (stack.is(Items.CLAY_BALL) || stack.isEmpty())
+        {
+            return VANILLA_CLAY_TEXTURE;
+        }
+        return VANILLA_CLAY_TEXTURE;
     }
 
     @Override

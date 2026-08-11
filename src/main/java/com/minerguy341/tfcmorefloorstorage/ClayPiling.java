@@ -19,7 +19,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Shift-click clay balls to create / fill {@link ClayPileBlock}s (mirrors TFC ingot piling).
+ * Shift-click pileable clays (vanilla, kaolin, fire clay) onto {@link ClayPileBlock}s.
  */
 public final class ClayPiling
 {
@@ -28,7 +28,7 @@ public final class ClayPiling
     public static void register()
     {
         final BlockItemPlacement placement = new BlockItemPlacement(() -> Items.AIR, ModBlocks.CLAY_PILE);
-        InteractionManager.register(Ingredient.of(Items.CLAY_BALL), false, (stack, context) -> doPiling(placement, stack, context));
+        InteractionManager.register(Ingredient.of(ModTags.PILEABLE_CLAYS), false, (stack, context) -> doPiling(placement, stack, context));
     }
 
     private static InteractionResult doPiling(BlockItemPlacement placement, ItemStack stack, UseOnContext context)

@@ -36,7 +36,7 @@ public class TFCMoreFloorStorage
     private void onCommonSetup(FMLCommonSetupEvent event)
     {
         event.enqueueWork(ClayPiling::register);
-        LOGGER.info("Registered clay pile interaction (shift-click clay balls, capacity {}).", ClayPileBlock.MAX_COUNT);
+        LOGGER.info("Registered clay pile interaction for tag {} (capacity {}).", ModTags.PILEABLE_CLAYS.location(), ClayPileBlock.MAX_COUNT);
     }
 
     private void onClientSetup(FMLClientSetupEvent event)
