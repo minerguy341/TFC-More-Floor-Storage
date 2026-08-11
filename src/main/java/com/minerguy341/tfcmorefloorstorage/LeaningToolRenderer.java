@@ -14,18 +14,15 @@ import net.minecraft.world.level.Level;
 /**
  * Stands each leaned tool on the floor and tips it into the wall.
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
- * Wall face is at {@code z = -0.5}; the foot stays room-side so the leaned head rests on that face
- * instead of punching through into the wall block.
+ * <p>
+ * Order: upright + face correction first (so yaw doesn't cancel the lean), then tip into the wall.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    private static final float LEAN_ANGLE = 16f;
+    private static final float LEAN_ANGLE = 18f;
     private static final float SLOT_SPACING = 0.2f;
-    /**
-     * Foot position toward the wall from block centre. Kept shallow so after lean the head
-     * meets the wall at z≈-0.5 rather than clipping through it.
-     */
-    private static final float WALL_OFFSET = -0.10f;
+    /** Foot toward wall; wall face at z = -0.5. */
+    private static final float WALL_OFFSET = -0.22f;
     private static final float FOOT_Y = 0.02f;
     private static final float MODEL_LIFT = 0.36f;
     private static final float SCALE = 0.75f;
@@ -62,15 +59,15 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
-            // Foot on the floor, room-side of the wall face
             pose.translate(lateral, FOOT_Y, WALL_OFFSET);
-            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flatSprite)
             {
+                // Stand upright, then spin around the handle to match hand facing.
+                // Must happen BEFORE lean — a yaw after lean flips the tip away from the wall.
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
-                // Yaw flip matches hand/inventory facing without negative-scale glitches
                 pose.mulPose(Axis.YP.rotationDegrees(180f));
             }
+            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             pose.translate(0f, MODEL_LIFT, 0f);
             pose.scale(SCALE, SCALE, SCALE);
 
