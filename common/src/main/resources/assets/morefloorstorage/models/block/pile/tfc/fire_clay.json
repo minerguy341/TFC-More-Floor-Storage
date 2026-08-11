@@ -1,0 +1,6 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "tfc:block/fire_clay_block"
+  }
+}

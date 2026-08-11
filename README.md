@@ -155,8 +155,12 @@ ask to lean or pick up but never dictate what it gets.
 
 ### Lump models
 
-By default a lump in a pile is a generic frustum textured from the middle of the item's sprite. Give an
-item real geometry by putting a block model at
+By default a lump in a pile is half a TerraFirmaCraft ingot - the same bar with the same bevel, cut to
+half its length and drawn at half scale - so a heap of clay stacks like a heap of ingots. Courses are laid
+square rather than scattered, and turned across the one below them.
+
+There are two ways to change what an item looks like, both of them just a file. Give an item **real
+geometry** by putting a block model at
 `assets/morefloorstorage/models/block/pile/<item namespace>/<item path>.json` - so
 `tfc:ore/rich_native_copper` picks up
 `assets/morefloorstorage/models/block/pile/tfc/ore/rich_native_copper.json`. Everything under that
@@ -165,9 +169,21 @@ no registration; a pack that writes to the same path overrides ours.
 
 The model is measured, not assumed. It is seated by its own bounding box - centred on its spot in the
 pile and standing on the layer - so it need not be centred in its block or built at any particular size.
-A model six pixels across renders the same width as the default frustum, a bigger one renders bigger, and
-only a model wide enough to crowd its neighbours gets shrunk to fit. That means the size difference
-between a poor and a rich chunk survives into the pile.
+A model six pixels across renders four pixels wide, a bigger one renders bigger, and only a model wide
+enough to crowd its neighbours gets shrunk to fit. That means the size difference between a poor and a
+rich chunk survives into the pile. Items drawn from a model of their own are also scattered a little, so
+a heap of ore reads as a heap rather than as a grid.
+
+Or give an item just a **texture**, by putting a model with no geometry in it at the same path:
+
+```json
+{ "parent": "block/block", "textures": { "particle": "minecraft:block/clay" } }
+```
+
+That keeps the built-in bar and wraps it in that texture instead of the item's icon, which matters
+because an inventory icon is usually a blob with empty corners and looks like one when it is wrapped
+round a bar. Clay, kaolin and fire clay ship this way. Anything with neither file falls back to the middle
+of its own icon.
 
 36 models ship for TFC's graded ores; see [tools/ore_models](tools/ore_models) for how they were built,
 and `tools/preview/make_ore_pile.py` to preview a pile of any of them outside the game.

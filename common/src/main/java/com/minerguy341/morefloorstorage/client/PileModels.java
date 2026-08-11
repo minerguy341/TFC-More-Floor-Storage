@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -30,8 +31,9 @@ import org.slf4j.Logger;
  * {@code morefloorstorage:block/pile/<item namespace>/<item path>} - so {@code tfc:ore/rich_native_copper}
  * looks for {@code morefloorstorage:block/pile/tfc/ore/rich_native_copper}. Anything found under that
  * directory is loaded, whether it ships with this mod or arrives in a resource pack, so adding or
- * replacing a lump model needs no code and no registration. Items with no model fall back to
- * {@link LumpGeometry}'s generic frustum.
+ * replacing a lump model needs no code and no registration. A model with no geometry in it, just a
+ * particle texture, keeps {@link LumpGeometry}'s bar and only changes what it is drawn in. Items with
+ * neither fall back to the bar in the middle of their own icon.
  * <p>
  * A model is measured rather than assumed: it is placed by its own bounding box, so it need not be
  * centred in its block or sit at any particular scale, and it is only shrunk if it would otherwise
@@ -45,10 +47,13 @@ public final class PileModels
     private static final String DIRECTORY = "block/pile";
 
     /**
-     * The width a lump model is authored at, matching TerraFirmaCraft's groundcover models. A model this
-     * wide renders exactly as wide as {@link LumpGeometry}'s frustum; a bigger one renders bigger.
+     * The width a lump model is authored at, matching TerraFirmaCraft's groundcover models, and the width
+     * one that wide comes out. A bigger model renders bigger. Deliberately its own number rather than the
+     * built-in lump's: what a chunk of ore should look like has nothing to do with how big a bar of clay
+     * is.
      */
     private static final float REFERENCE_SPAN = 6f / 16f;
+    private static final float REFERENCE_WIDTH = 0.25f;
 
     /** Past this, a lump starts crowding its neighbours in the pile, so it gets shrunk to fit. */
     private static final float MAX_WIDTH = 0.30f;
@@ -56,10 +61,17 @@ public final class PileModels
     private static final Map<Item, Lump> CACHE = new IdentityHashMap<>();
 
     /**
-     * A lump model together with the transform that seats it: centred on its spot and standing on it.
+     * What to draw for one item.
+     * <p>
+     * A {@code model} is geometry of its own, together with the transform that seats it: centred on its
+     * spot and standing on it. With no model there is still a {@code sprite} to fall back on, which
+     * {@link LumpGeometry} wraps round its bar.
      */
-    public record Lump(BakedModel model, float scale, float offsetX, float offsetY, float offsetZ)
+    public record Lump(@Nullable BakedModel model, @Nullable TextureAtlasSprite sprite,
+                       float scale, float offsetX, float offsetY, float offsetZ)
     {
+        private static final Lump NOTHING = new Lump(null, null, 1f, 0f, 0f, 0f);
+
         public void applyTo(PoseStack pose)
         {
             pose.scale(scale, scale, scale);
@@ -117,12 +129,12 @@ public final class PileModels
     }
 
     /**
-     * @return the lump for this item, or {@code null} if it has no model of its own.
+     * @return what to draw for this item. Never {@code null}: an item with nothing of its own gets a
+     * {@link Lump} with neither model nor sprite, and the caller falls back to the item's own icon.
      */
-    public static @Nullable Lump lookup(ItemStack stack, RandomSource random)
+    public static Lump lookup(ItemStack stack, RandomSource random)
     {
-        final Lump lump = CACHE.computeIfAbsent(stack.getItem(), item -> measure(item, random));
-        return lump.model() == null ? null : lump;
+        return CACHE.computeIfAbsent(stack.getItem(), item -> measure(item, random));
     }
 
     private static Lump measure(Item item, RandomSource random)
@@ -133,22 +145,25 @@ public final class PileModels
         // getModel hands back the missing model rather than null, which caches the absence for free
         if (model == models.getMissingModel())
         {
-            return new Lump(null, 1f, 0f, 0f, 0f);
+            return Lump.NOTHING;
         }
 
         final float[] bounds = boundsOf(model, random);
         if (bounds == null)
         {
-            return new Lump(null, 1f, 0f, 0f, 0f);
+            // A model with no geometry in it, just a texture, says "draw the built-in bar in this". Clay
+            // uses that to be drawn in the clay block's texture rather than in the clay ball icon, which
+            // is a blob with empty corners and looks like one when it is wrapped round a bar.
+            return new Lump(null, model.getParticleIcon(), 1f, 0f, 0f, 0f);
         }
 
         final float width = Math.max(bounds[3] - bounds[0], bounds[5] - bounds[2]);
-        float scale = LumpGeometry.WIDTH / REFERENCE_SPAN;
+        float scale = REFERENCE_WIDTH / REFERENCE_SPAN;
         if (width * scale > MAX_WIDTH && width > 0)
         {
             scale = MAX_WIDTH / width; // Only the oversized get trimmed; the rest keep their relative size
         }
-        return new Lump(model, scale,
+        return new Lump(model, model.getParticleIcon(), scale,
             -(bounds[0] + bounds[3]) / 2f,  // centred horizontally on its spot in the pile
             -bounds[1],                     // standing on the layer, not floating above it
             -(bounds[2] + bounds[5]) / 2f);

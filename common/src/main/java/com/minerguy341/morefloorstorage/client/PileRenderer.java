@@ -26,9 +26,10 @@ import net.neoforged.neoforge.client.model.data.ModelData;
  * taken off the top.
  * <p>
  * Lumps are real geometry rather than the item's flat inventory icon. An item with a model of its own -
- * see {@link PileModels} - is drawn with it; anything else falls back to {@link LumpGeometry}'s generic
- * frustum, textured from the middle of the item's sprite. Either way a pile reads as a heap rather than
- * a stack of paper discs, and one renderer serves every kind of pile.
+ * see {@link PileModels} - is drawn with it, and scattered a little so a heap of ore reads as a heap.
+ * Anything else gets {@link LumpGeometry}'s half ingot, laid square and turned across the course below,
+ * so a heap of clay stacks the way TerraFirmaCraft's ingot piles do. One renderer serves every kind of
+ * pile either way.
  */
 public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
 {
@@ -100,13 +101,15 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
 
             pose.pushPose();
             pose.translate(x, PileLayout.heightOf(layer), z);
-            pose.mulPose(Axis.YP.rotationDegrees(jitter(seed, i, 0) * MAX_SPIN));
-            pose.mulPose(Axis.XP.rotationDegrees(jitter(seed, i, 1) * MAX_TILT));
-            pose.mulPose(Axis.ZP.rotationDegrees(jitter(seed, i, 2) * MAX_TILT));
 
             final PileModels.Lump lump = PileModels.lookup(stack, random);
-            if (lump != null)
+            if (lump.model() != null)
             {
+                // A lump of something with a shape of its own is scattered, so a heap of ore reads as a
+                // heap rather than as a grid
+                pose.mulPose(Axis.YP.rotationDegrees(jitter(seed, i, 0) * MAX_SPIN));
+                pose.mulPose(Axis.XP.rotationDegrees(jitter(seed, i, 1) * MAX_TILT));
+                pose.mulPose(Axis.ZP.rotationDegrees(jitter(seed, i, 2) * MAX_TILT));
                 lump.applyTo(pose);
                 Minecraft.getInstance().getBlockRenderer().getModelRenderer().tesselateWithoutAO(
                     level, lump.model(), pile.getBlockState(), pos, pose, buffer, false,
@@ -114,14 +117,27 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
             }
             else
             {
-                final TextureAtlasSprite sprite = Minecraft.getInstance().getItemRenderer()
-                    .getModel(stack, level, null, seed + i)
-                    .getParticleIcon();
-                LumpGeometry.render(pose, buffer, sprite, packedLight, packedOverlay);
+                // Bars are stacked, not scattered: each course laid square and turned across the one
+                // below it, the way TerraFirmaCraft's ingot piles are built
+                if (layer % 2 == 1)
+                {
+                    pose.mulPose(Axis.YP.rotationDegrees(90f));
+                }
+                LumpGeometry.render(pose, buffer, spriteFor(stack, lump, level, seed + i), packedLight, packedOverlay);
             }
 
             pose.popPose();
         }
+    }
+
+    /**
+     * What to wrap a bar in: the texture the item's lump model names, or failing that the item's own icon.
+     */
+    private static TextureAtlasSprite spriteFor(ItemStack stack, PileModels.Lump lump, Level level, int seed)
+    {
+        return lump.sprite() != null
+            ? lump.sprite()
+            : Minecraft.getInstance().getItemRenderer().getModel(stack, level, null, seed).getParticleIcon();
     }
 
     /**
