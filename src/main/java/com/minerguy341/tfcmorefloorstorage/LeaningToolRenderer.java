@@ -15,13 +15,13 @@ import net.minecraft.world.level.Level;
  * Stands each leaned tool on the floor and tips it into the wall.
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
  * <p>
- * Lean ({@code XP}) is applied before the upright turn so flat sprites tip into the wall.
- * Some tools ({@link ModTags#LEAN_FLIP_FACING}) get a 90° clockwise spin in the sprite plane
- * before leaning so the blade faces the correct way.
+ * Lean ({@code XP}) must run while local {@code X} is still along the wall; a prior {@code ZP}
+ * spin remaps that axis and tips tools sideways. Facing/upright spins happen after the lean.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    private static final float LEAN_ANGLE = 22f;
+    /** Degrees off vertical, tip toward the wall. */
+    private static final float LEAN_ANGLE = 28f;
     private static final float SLOT_SPACING = 0.2f;
     /** Tool center height; FIXED models are origin-centered. */
     private static final float CENTER_Y = 0.42f;
@@ -37,8 +37,8 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
      */
     private static final float UPRIGHT_TURN = -45f;
     /**
-     * Extra spin for knives/chisels/tuyeres/saws, applied before the lean (clockwise when
-     * viewing the FIXED sprite face).
+     * Extra spin for knives/chisels/tuyeres/saws (clockwise when viewing the FIXED sprite face),
+     * applied after the lean so it does not steal the tip-into-wall axis.
      */
     private static final float FLIP_FACING_TURN = 90f;
 
@@ -74,13 +74,13 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
-            // Foot near wall; optional 90° CW; tip into -Z; stand flat sprites upright.
+            // Foot near wall → tip into -Z → then facing/upright spins in the leaned frame.
             pose.translate(lateral, CENTER_Y, WALL_OFFSET);
+            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flipFacing)
             {
                 pose.mulPose(Axis.ZP.rotationDegrees(FLIP_FACING_TURN));
             }
-            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flatSprite)
             {
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
