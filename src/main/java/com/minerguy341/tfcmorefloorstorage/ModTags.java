@@ -12,5 +12,11 @@ public final class ModTags
         new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "pileable_clays")
     );
 
+    /** Items that can be leaned against a wall (defaults to TFC tool-rack tools). */
+    public static final TagKey<Item> LEANABLE = TagKey.create(
+        Registries.ITEM,
+        new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "leanable")
+    );
+
     private ModTags() {}
 }

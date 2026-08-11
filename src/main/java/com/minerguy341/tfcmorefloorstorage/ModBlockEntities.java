@@ -15,5 +15,10 @@ public final class ModBlockEntities
         () -> BlockEntityType.Builder.of(ClayPileBlockEntity::new, ModBlocks.CLAY_PILE.get()).build(null)
     );
 
+    public static final RegistryObject<BlockEntityType<LeaningToolBlockEntity>> LEANING_TOOL = BLOCK_ENTITIES.register(
+        "leaning_tool",
+        () -> BlockEntityType.Builder.of(LeaningToolBlockEntity::new, ModBlocks.LEANING_TOOL.get()).build(null)
+    );
+
     private ModBlockEntities() {}
 }
