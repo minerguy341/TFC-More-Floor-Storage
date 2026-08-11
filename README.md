@@ -22,10 +22,14 @@ Mixed clay types in one pile are allowed (like mixed metal ingot piles). Click w
 
 ## Tool leaning (from Claude branch)
 
-Aim at the **side of a solid block** with a leanable tool and press TFC’s floor storage key (**V** by default) to prop the tool against the wall (Vintage Story style). Up to **4** tools per block.
+Aim at the **side of a solid block** with a leanable tool and press TFC’s floor storage key (**V** by default) to prop the tool against the wall (Vintage Story style).
 
 - Tag: `tfcmorefloorstorage:leanable` (includes `#tfc:usable_on_tool_rack` plus vanilla tool tags)
 - Click a leaned tool to take it back
+- **Capacity** matches TFC ground placed items (`tfc-server.toml`):
+  - size ≤ `maxPlacedItemSize` (default Large) → up to **4** tools on one block
+  - larger, up to `maxPlacedLargeItemSize` → **1** tool alone
+- Aim at an existing leaning-tools block (or the same wall face) to fill extra slots; a new wall segment still starts a new block
 - Toggle / range: `config/tfcmorefloorstorage-server.toml`
 
 ## Metal ingot mesh (optional)

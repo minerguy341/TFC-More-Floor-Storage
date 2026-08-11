@@ -12,14 +12,26 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
- * Stands each leaned tool up and tips it back into the wall.
- * Ported from Claude's {@code LeaningToolRenderer}.
+ * Stands each leaned tool on the floor and tips it into the wall.
+ * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    private static final float LEAN_ANGLE = 14f;
-    private static final float SLOT_SPACING = 0.22f;
-    /** Flat item sprites need a quarter turn to stand the tool diagonal upright. */
+    /** Degrees off vertical, tipping the head toward the wall. */
+    private static final float LEAN_ANGLE = 22f;
+    /** Lateral spacing between neighbouring tools. */
+    private static final float SLOT_SPACING = 0.2f;
+    /** How far from block centre toward the wall (wall is at local z = -0.5). */
+    private static final float WALL_OFFSET = -0.40f;
+    /** Pivot height above the floor (near the handle butt). */
+    private static final float FOOT_Y = 0.04f;
+    /** Raise the FIXED item model so the handle sits on the pivot / ground. */
+    private static final float MODEL_LIFT = 0.42f;
+    private static final float SCALE = 0.78f;
+    /**
+     * Flat sprites are drawn corner-to-corner; this quarter-turn stands the tool upright
+     * before the lean is applied.
+     */
     private static final float UPRIGHT_TURN = -45f;
 
     @Override
@@ -33,6 +45,7 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
 
         final Direction facing = leaning.getBlockState().getValue(LeaningToolBlock.FACING);
         final int seed = leaning.getBlockPos().hashCode();
+        final boolean large = leaning.isHoldingLargeItem();
 
         for (int slot = 0; slot < LeaningToolBlock.SLOTS; slot++)
         {
@@ -44,17 +57,23 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
 
             final BakedModel model = Minecraft.getInstance().getItemRenderer().getModel(stack, level, null, seed);
             final boolean flatSprite = !model.isGui3d();
+            final float lateral = large
+                ? 0f
+                : (slot - (LeaningToolBlock.SLOTS - 1) / 2f) * SLOT_SPACING;
 
             pose.pushPose();
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
-            pose.translate((slot - (LeaningToolBlock.SLOTS - 1) / 2f) * SLOT_SPACING, 0.45f, -0.16f);
-            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
+
+            // Foot near the floor, close to the wall; lean tips the head into the wall
+            pose.translate(lateral, FOOT_Y, WALL_OFFSET);
             if (flatSprite)
             {
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
             }
-            pose.scale(0.7f, 0.7f, 0.7f);
+            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
+            pose.translate(0f, MODEL_LIFT, 0f);
+            pose.scale(SCALE, SCALE, SCALE);
 
             Minecraft.getInstance().getItemRenderer().renderStatic(
                 stack, ItemDisplayContext.FIXED, packedLight, packedOverlay, pose, buffers, level, seed + slot);

@@ -1,5 +1,8 @@
 package com.minerguy341.tfcmorefloorstorage;
 
+import net.dries007.tfc.common.capabilities.size.ItemSizeManager;
+import net.dries007.tfc.common.capabilities.size.Size;
+import net.dries007.tfc.config.TFCConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,18 +17,10 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
 /**
- * Vintage Story style tool leaning. Aim at a solid block face and press TFC's floor storage key
- * to stand the held tool against that wall.
- * <p>
- * Ported from Claude's {@code ToolLeaning}.
+ * Vintage Story style tool leaning, with TFC placed-item size capacity rules.
  */
 public final class ToolLeaning
 {
-    /**
-     * Server-authoritative: target is derived from the player's look vector.
-     *
-     * @return {@code true} if a tool was leaned.
-     */
     public static boolean tryLean(ServerPlayer player)
     {
         if (!ToolLeaningConfig.ENABLE_TOOL_LEANING.get() || !player.mayBuild())
@@ -35,6 +30,10 @@ public final class ToolLeaning
 
         final ItemStack held = player.getMainHandItem();
         if (held.isEmpty() || !held.is(ModTags.LEANABLE))
+        {
+            return false;
+        }
+        if (!isLeanableSize(held))
         {
             return false;
         }
@@ -87,25 +86,28 @@ public final class ToolLeaning
         return true;
     }
 
+    /**
+     * Same size gate as TFC ground placed items ({@code maxPlacedItemSize} / {@code maxPlacedLargeItemSize}).
+     */
+    public static boolean isLeanableSize(ItemStack stack)
+    {
+        final Size size = ItemSizeManager.get(stack).getSize(stack);
+        return size.isEqualOrSmallerThan(TFCConfig.SERVER.maxPlacedLargeItemSize.get());
+    }
+
     private static boolean insert(Level level, BlockPos pos, Player player, ItemStack held, int preferredSlot)
     {
         if (!(level.getBlockEntity(pos) instanceof LeaningToolBlockEntity leaning))
         {
             return false;
         }
-
-        int slot = preferredSlot;
-        if (!leaning.getTool(slot).isEmpty())
-        {
-            slot = leaning.firstFreeSlot();
-        }
-        if (slot == -1)
+        if (!leaning.canAccept(held))
         {
             return false;
         }
 
         final ItemStack tool = player.isCreative() ? held.copyWithCount(1) : held.split(1);
-        if (!leaning.setTool(slot, tool))
+        if (!leaning.tryInsert(preferredSlot, tool))
         {
             if (!player.isCreative())
             {
