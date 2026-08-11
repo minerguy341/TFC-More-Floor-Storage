@@ -42,7 +42,8 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * How much fits depends on where it stands. A heap in the open slumps into a pyramid and holds 64, but
  * anything holding it in lets it stay wider for longer: 95 against a wall, 125 in a corner, 150 in a
- * pit, where it is a straight column. Take the wall away and whatever no longer fits spills out.
+ * pit, where it is a straight column. Widen the pit while it is in use and the heap slumps to suit:
+ * whatever no longer fits trickles out through the gap, a few items a tick, until it does.
  * <p>
  * A pyramid will not balance on the point of another one, so piles do not stack. The way up is to fill a
  * two by two: four full piles merge into a single pyramid spanning all four blocks, which is broad enough
@@ -62,6 +63,16 @@ public class PileBlock extends Block implements EntityBlock
 
     /** Sides that must be walled for a pile to heap higher without a full group beneath it. */
     private static final int WALLS_TO_BRACE = 1;
+
+    /**
+     * How many items a slumping heap sheds per tick. Opening up a full pit can put nearly a hundred of
+     * them over the line at once, and a heap that empties itself over a couple of seconds looks like a
+     * heap slumping; dropping the lot in one tick looks like a bug and lands as one heap of entities.
+     */
+    private static final int SPILL_PER_TICK = 4;
+
+    /** Ticks between one shed and the next while a heap is still slumping. */
+    private static final int SPILL_INTERVAL = 2;
 
     /**
      * The four two by twos that could contain a given pile, by their minimum corner, in a fixed scan
@@ -482,7 +493,23 @@ public class PileBlock extends Block implements EntityBlock
         // Down for the floor, horizontals because a wall this pile was leaning on may have gone
         if (direction == Direction.DOWN || direction.getAxis().isHorizontal())
         {
-            level.scheduleTick(pos, this, 1);
+            // A group's capacity comes from its best-braced member, so a wall lost beside any one of
+            // the four is lost for all four - including the three that never see a block update
+            final BlockPos origin = groupOrigin(level, pos);
+            if (origin == null)
+            {
+                level.scheduleTick(pos, this, 1);
+            }
+            else
+            {
+                for (int dx = 0; dx < 2; dx++)
+                {
+                    for (int dz = 0; dz < 2; dz++)
+                    {
+                        level.scheduleTick(origin.offset(dx, 0, dz), this, 1);
+                    }
+                }
+            }
         }
         return state;
     }
@@ -520,18 +547,50 @@ public class PileBlock extends Block implements EntityBlock
         }
 
         // Take a wall away and the heap it was holding in slumps: anything over what this spot can now
-        // hold spills out rather than sitting in a pile that is no longer shaped to contain it
+        // hold spills out rather than sitting in a pile that is no longer shaped to contain it. It goes
+        // a few at a time, out through the gap, and keeps going until the heap fits again.
         final int capacity = capacityAt(level, pos);
         final int count = state.getValue(COUNT);
         if (count > capacity && level.getBlockEntity(pos) instanceof PileBlockEntity pile)
         {
-            for (int i = count; i > capacity; i--)
+            final int remaining = Math.max(capacity, count - SPILL_PER_TICK);
+            final Direction gap = openSide(level, pos);
+            for (int i = count; i > remaining; i--)
             {
-                popResource(level, pos, pile.removeTop());
+                final ItemStack spilled = pile.removeTop();
+                if (gap == null)
+                {
+                    popResource(level, pos, spilled);
+                }
+                else
+                {
+                    popResourceFromFace(level, pos, gap, spilled);
+                }
             }
-            level.setBlock(pos, state.setValue(COUNT, capacity), Block.UPDATE_CLIENTS);
+            level.setBlock(pos, state.setValue(COUNT, remaining), Block.UPDATE_CLIENTS);
+            if (remaining > capacity)
+            {
+                level.scheduleTick(pos, this, SPILL_INTERVAL);
+            }
             updateSupportedPiles(level, pos);
         }
+    }
+
+    /**
+     * @return a side that is no longer holding this heap in, so spill goes out through the gap rather
+     * than up out of the middle, or {@code null} if the pile is walled in on all four sides.
+     */
+    private static @Nullable Direction openSide(BlockGetter level, BlockPos pos)
+    {
+        for (Direction direction : Direction.Plane.HORIZONTAL)
+        {
+            final BlockPos side = pos.relative(direction);
+            if (!level.getBlockState(side).isFaceSturdy(level, side, direction.getOpposite()))
+            {
+                return direction;
+            }
+        }
+        return null;
     }
 
     @Override

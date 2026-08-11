@@ -204,7 +204,11 @@ public final class PileLayout
      */
     public static int cellOf(int layer, int indexInLayer, int walls, int lean)
     {
-        return FILL_ORDER[Mth.clamp(walls, 0, MAX_WALLS)][layer][lean][indexInLayer];
+        final int[] order = FILL_ORDER[Mth.clamp(walls, 0, MAX_WALLS)][layer][lean];
+        // An index past the end means the pile is holding more than this spot can now shape, because a
+        // wall it was heaped against has just gone. Those items are already on their way out; sharing
+        // the last spot for the tick or two they take to spill beats taking the client down over them.
+        return order[Math.min(indexInLayer, order.length - 1)];
     }
 
     /**

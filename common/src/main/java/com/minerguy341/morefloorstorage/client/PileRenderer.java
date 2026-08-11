@@ -61,7 +61,11 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
         final int quadrantX = origin == null ? 0 : pos.getX() - origin.getX();
         final int quadrantZ = origin == null ? 0 : pos.getZ() - origin.getZ();
 
-        for (int i = 0; i < stacks.size(); i++)
+        // Knock a wall out from beside a full pit and the heap holds more than its new shape has room
+        // for until it has finished spilling. Draw what fits: the rest is leaving.
+        final int drawn = Math.min(stacks.size(), PileLayout.capacity(walls));
+
+        for (int i = 0; i < drawn; i++)
         {
             final ItemStack stack = stacks.get(i);
             if (stack.isEmpty())
