@@ -95,13 +95,30 @@ public class PileBlockEntity extends SyncedBlockEntity
      */
     public void fillTooltip(Consumer<Component> tooltip)
     {
-        final Map<Item, int[]> counts = new LinkedHashMap<>(); // Deterministic iteration order
+        final Map<Item, Integer> counts = new LinkedHashMap<>(); // Deterministic iteration order
+        countInto(counts);
+        describe(counts, tooltip);
+    }
+
+    /**
+     * Tallies this pile's contents into {@code counts}, so the four blocks of a merged group can be
+     * summarised as the one pile they are rather than as four separate lists.
+     */
+    public void countInto(Map<Item, Integer> counts)
+    {
         for (ItemStack stack : stacks)
         {
-            counts.computeIfAbsent(stack.getItem(), key -> new int[1])[0]++;
+            counts.merge(stack.getItem(), 1, Integer::sum);
         }
+    }
+
+    /**
+     * Turns a tally from {@link #countInto} into one "{@code 12x Clay}" line per distinct item.
+     */
+    public static void describe(Map<Item, Integer> counts, Consumer<Component> tooltip)
+    {
         counts.forEach((item, count) -> tooltip.accept(
-            Component.literal(count[0] + "x ").append(item.getDescription())));
+            Component.literal(count + "x ").append(item.getDescription())));
     }
 
     @Override

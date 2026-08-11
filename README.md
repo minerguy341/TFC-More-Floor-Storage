@@ -47,16 +47,22 @@ the BlameJared maven. Both are configured in the convention plugin; no manual ja
 ### Mods in the dev run
 
 Anything with a `<name>Version` property in `versions/<mc>/gradle.properties` is fetched and put on the
-run classpath. Jade is there for testing: it reads a pile's `count` straight off the block state, and it
-is the tooltip mod most likely to disagree with a block that draws its own contents. Blank the property
-to leave it out.
-
-Jade shows block state properties only once **Show Block States** is switched on, under Block in its
-config screen; the pile's `count` is what that reveals.
+run classpath. Jade is there both to test against - it is the tooltip mod most likely to disagree with a
+block that draws its own contents - and because the mod integrates with it.
 
 For a mod the build cannot fetch - behind a blocked maven, never published to one, or a specific build
 being chased - drop the jar in `versions/<mc>/libs` instead. It joins the run classpath the same way and
 is not committed.
+
+### Optional integrations
+
+`compat/jade` is compiled only when `jadeVersion` is set, and Jade is `compileOnly`, so it never reaches
+anyone's game through this mod. Jade finds the plugin by annotation scan and nothing else refers to those
+classes, so without Jade installed they are never loaded.
+
+Blanking `jadeVersion` drops the dependency **and** the source, which is also how a Minecraft version
+with no Jade build yet still builds. The mapping from property to package is `optionalCompat` in the
+convention plugin; add an entry there to make another integration optional the same way.
 
 ## Project layout
 

@@ -2,6 +2,7 @@
   "block.morefloorstorage.clay_pile": "Clay Pile",
   "block.morefloorstorage.ore_pile": "Ore Pile",
   "block.morefloorstorage.leaning_tool": "Leaning Tools",
+  "morefloorstorage.tooltip.filled": "%s / %s",
   "morefloorstorage.configuration.title": "More Floor Storage",
   "morefloorstorage.configuration.tool_leaning": "Tool Leaning",
   "morefloorstorage.configuration.floor_storage": "Floor Storage",

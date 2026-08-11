@@ -43,6 +43,13 @@ val neoForgeVersion = versionProp("neoForgeVersion")
 val tfcVersion = versionProp("tfcVersion")
 val javaVersion = versionProp("javaVersion")
 
+// Optional integrations. Each names a package under `compat/` that is only compiled when the mod it
+// integrates with is available to compile against - see mergeJavaSources. A version left blank drops
+// both the dependency and the code, so a Minecraft version with no build of that mod yet still builds.
+val optionalCompat = mapOf(
+    "jadeVersion" to "**/compat/jade/**"
+)
+
 // ---------------------------------------------------------------------------------------------
 // Source layout: shared tree overlaid with per-version overrides
 // ---------------------------------------------------------------------------------------------
@@ -56,6 +63,9 @@ val mergeJavaSources = tasks.register<Sync>("mergeJavaSources") {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     from(commonDir.dir("java"))
     from(versionDir.dir("java"))
+    optionalCompat.forEach { (property, sources) ->
+        if (optionalVersionProp(property) == null) exclude(sources)
+    }
     into(layout.buildDirectory.dir("mergedSources/java"))
 }
 
@@ -176,10 +186,15 @@ dependencies {
     // So every mod on the run classpath is one this file names. Patchouli is required by TFC itself.
     optionalVersionProp("patchouliVersion")?.let { runtimeOnly("vazkii.patchouli:Patchouli:$it") }
 
-    // Mods wanted in the dev run but not compiled against: tooltip overlays to read a pile's count off,
-    // and whatever else is worth checking this mod does not upset. Non-transitive for the same reason
-    // TerraFirmaCraft is - a Modrinth POM lists whatever the project page lists, optional deps included.
-    optionalVersionProp("jadeVersion")?.let { runtimeOnly("maven.modrinth:jade:$it") { isTransitive = false } }
+    // Jade: on the run classpath to test against, and compiled against for the tooltip integration in
+    // compat/jade. compileOnly, because the integration must not drag Jade into anyone's game - Jade
+    // finds it by annotation scan, and with Jade absent nothing in the mod refers to those classes at
+    // all. Non-transitive for the same reason TerraFirmaCraft is: a Modrinth POM lists whatever the
+    // project page lists, optional dependencies included.
+    optionalVersionProp("jadeVersion")?.let {
+        compileOnly("maven.modrinth:jade:$it") { isTransitive = false }
+        runtimeOnly("maven.modrinth:jade:$it") { isTransitive = false }
+    }
 
     // Anything dropped in versions/<mc>/libs joins the run classpath as a mod. The mavens above are not
     // reachable from every network this is built on, and not every mod worth testing against publishes
