@@ -19,8 +19,7 @@ public final class ModTags
     );
 
     /**
-     * Flat sprites that face the wrong way when leaned; yaw-flipped before the lean tip
-     * (knives, chisels, tuyeres, saws).
+     * Flat sprites that need a 90° clockwise turn before leaning (knives, chisels, tuyeres, saws).
      */
     public static final TagKey<Item> LEAN_FLIP_FACING = TagKey.create(
         Registries.ITEM,
