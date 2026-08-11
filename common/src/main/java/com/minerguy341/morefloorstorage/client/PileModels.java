@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.minerguy341.morefloorstorage.MoreFloorStorage;
+import com.minerguy341.morefloorstorage.compat.tfc.IngotMesh;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -32,8 +33,8 @@ import org.slf4j.Logger;
  * looks for {@code morefloorstorage:block/pile/tfc/ore/rich_native_copper}. Anything found under that
  * directory is loaded, whether it ships with this mod or arrives in a resource pack, so adding or
  * replacing a lump model needs no code and no registration. A model with no geometry in it, just a
- * particle texture, keeps {@link LumpGeometry}'s bar and only changes what it is drawn in. Items with
- * neither fall back to the bar in the middle of their own icon.
+ * particle texture, keeps {@link IngotMesh}'s bar and only changes what it is drawn in. Items with
+ * neither fall back to the bar in their own icon.
  * <p>
  * A model is measured rather than assumed: it is placed by its own bounding box, so it need not be
  * centred in its block or sit at any particular scale, and it is only shrunk if it would otherwise
@@ -65,7 +66,7 @@ public final class PileModels
      * <p>
      * A {@code model} is geometry of its own, together with the transform that seats it: centred on its
      * spot and standing on it. With no model there is still a {@code sprite} to fall back on, which
-     * {@link LumpGeometry} wraps round its bar.
+     * {@link IngotMesh} wraps round its bar.
      */
     public record Lump(@Nullable BakedModel model, @Nullable TextureAtlasSprite sprite,
                        float scale, float offsetX, float offsetY, float offsetZ)

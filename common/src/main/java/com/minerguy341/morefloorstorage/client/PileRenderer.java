@@ -6,6 +6,7 @@ import com.minerguy341.morefloorstorage.common.block.PileBlock;
 import com.minerguy341.morefloorstorage.common.block.PileGroup;
 import com.minerguy341.morefloorstorage.common.block.PileLayout;
 import com.minerguy341.morefloorstorage.common.blockentity.PileBlockEntity;
+import com.minerguy341.morefloorstorage.compat.tfc.IngotMesh;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -27,9 +28,9 @@ import net.neoforged.neoforge.client.model.data.ModelData;
  * <p>
  * Lumps are real geometry rather than the item's flat inventory icon. An item with a model of its own -
  * see {@link PileModels} - is drawn with it, and scattered a little so a heap of ore reads as a heap.
- * Anything else gets {@link LumpGeometry}'s half ingot, laid square and turned across the course below,
- * so a heap of clay stacks the way TerraFirmaCraft's ingot piles do. One renderer serves every kind of
- * pile either way.
+ * Anything else gets {@link IngotMesh}, half a TerraFirmaCraft ingot drawn by TerraFirmaCraft, laid
+ * square and turned across the course below, so a heap of clay stacks the way its ingot piles do. One
+ * renderer serves every kind of pile either way.
  */
 public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
 {
@@ -123,7 +124,7 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
                 {
                     pose.mulPose(Axis.YP.rotationDegrees(90f));
                 }
-                LumpGeometry.render(pose, buffer, spriteFor(stack, lump, level, seed + i), packedLight, packedOverlay);
+                IngotMesh.render(pose, buffer, spriteFor(stack, lump, level, seed + i), packedLight, packedOverlay);
             }
 
             pose.popPose();

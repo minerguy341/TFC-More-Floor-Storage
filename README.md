@@ -156,8 +156,9 @@ ask to lean or pick up but never dictate what it gets.
 ### Lump models
 
 By default a lump in a pile is half a TerraFirmaCraft ingot - the same bar with the same bevel, cut to
-half its length and drawn at half scale - so a heap of clay stacks like a heap of ingots. Courses are laid
-square rather than scattered, and turned across the one below them.
+half its length and drawn at half scale, through TFC's own `RenderHelpers`, so it is textured and shaded
+exactly the way its ingot piles are. Courses are laid square rather than scattered, and turned across the
+one below them.
 
 There are two ways to change what an item looks like, both of them just a file. Give an item **real
 geometry** by putting a block model at
@@ -182,8 +183,8 @@ Or give an item just a **texture**, by putting a model with no geometry in it at
 
 That keeps the built-in bar and wraps it in that texture instead of the item's icon, which matters
 because an inventory icon is usually a blob with empty corners and looks like one when it is wrapped
-round a bar. Clay, kaolin and fire clay ship this way. Anything with neither file falls back to the middle
-of its own icon.
+round a bar. Clay, kaolin and fire clay ship this way. Anything with neither file falls back to its own
+icon.
 
 36 models ship for TFC's graded ores; see [tools/ore_models](tools/ore_models) for how they were built,
 and `tools/preview/make_ore_pile.py` to preview a pile of any of them outside the game.
