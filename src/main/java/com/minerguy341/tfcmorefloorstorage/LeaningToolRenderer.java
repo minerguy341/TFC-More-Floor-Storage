@@ -69,7 +69,9 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(lateral, FOOT_Y, WALL_OFFSET);
             if (flatSprite)
             {
+                // Stand the diagonal sprite upright, then yaw 180 so it isn't mirrored
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
+                pose.mulPose(Axis.YP.rotationDegrees(180f));
             }
             pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             pose.translate(0f, MODEL_LIFT, 0f);
