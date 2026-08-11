@@ -27,8 +27,8 @@ public final class ModTags
     );
 
     /**
-     * Longer / tip-heavy sprites that clip into the wall at the default offset; pulled back so
-     * the tip meets the face (knives, chisels, tuyeres, saws, swords, maces, rods, spindle, firestarter).
+     * Longer sprites that sat too far from the wall; nudged closer so tips meet the face
+     * (knives, chisels, tuyeres, saws, swords, maces, rods, spindle, firestarter).
      */
     public static final TagKey<Item> LEAN_CLEAR_WALL = TagKey.create(
         Registries.ITEM,
