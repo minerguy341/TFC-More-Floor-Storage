@@ -22,9 +22,10 @@ import net.minecraft.util.Mth;
  *     3     5 5 5 5 5 4       141
  *     4     5 5 5 5 5 5       150
  * </pre>
- * Four piles in a two by two are one pile spanning both blocks: the same layers, with the grid doubled.
- * Doubling a grid quadruples it, which is exactly four members' worth, so each block contributes its own
- * items as one quadrant and nothing has to move between block entities.
+ * A rectangle of piles is one pile spanning all of them - see {@link PileGroup} - with the same layers
+ * over a grid multiplied by the span. Multiplying a grid by the span in both directions multiplies its
+ * cells by the number of blocks, so each block contributes its own items as one cell of the rectangle
+ * and nothing has to move between block entities.
  */
 public final class PileLayout
 {
@@ -147,13 +148,14 @@ public final class PileLayout
     }
 
     /**
-     * @param coordinate a row or column within the doubled grid of a group's layer
-     * @return its offset from the centre of the two by two, in blocks
+     * @param coordinate a row or column within the whole grid of a group's layer
+     * @param span how many blocks the group covers along this axis
+     * @return its offset from the centre of the group, in blocks
      */
-    public static float offsetInMergedLayer(int layer, int coordinate, int walls)
+    public static float offsetInMergedLayer(int layer, int coordinate, int walls, int span)
     {
-        final int grid = 2 * gridOf(layer, walls);
-        return ((float) coordinate / (grid - 1) - 0.5f) * ((grid - 1) * SPACING);
+        final int grid = span * gridOf(layer, walls);
+        return grid == 1 ? 0f : ((float) coordinate / (grid - 1) - 0.5f) * ((grid - 1) * SPACING);
     }
 
     public static float heightOf(int layer)
@@ -178,12 +180,12 @@ public final class PileLayout
         return Math.max(0, Math.round(16f * (0.5f - (spanOf(grid) / 2f + ITEM_HALF))));
     }
 
-    /** How far a group's layer is pulled in from the edge of its 32 pixel wide footprint. */
-    public static int mergedInsetOf(int layer, int walls)
+    /** How far a group's layer is pulled in from the edge of its {@code 16 * span} pixel footprint. */
+    public static int mergedInsetOf(int layer, int walls, int span)
     {
-        final int grid = 2 * gridOf(layer, walls);
+        final int grid = span * gridOf(layer, walls);
         final float halfExtent = (grid - 1) * SPACING / 2f + ITEM_HALF;
-        return Math.max(0, Math.round(16f * (1f - halfExtent)));
+        return Math.max(0, Math.round(16f * (span / 2f - halfExtent)));
     }
 
     // -----------------------------------------------------------------------------------------

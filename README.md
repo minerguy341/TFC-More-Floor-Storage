@@ -15,14 +15,33 @@ of the ground you walk on.
   Only piles of the same kind merge with each other, though a pile of any kind can be built on top of any
   merged group.
 
-  Piles do not stack on top of each other - a pyramid does not balance on the point of another one. To
-  build upwards, fill out a **2x2 of full piles**: the four merge into a single pyramid spanning all four
-  blocks, which is flat enough on top to take a next tier. Each block keeps its own 64 items and simply
-  draws them as its quadrant of the larger pyramid, so nothing moves between them. Take an item back off
-  any of the four and the merge breaks, dropping whatever was resting on it.
+  **Merging.** Piles standing in a filled rectangle become one pile - anything from a 2x2 up to a 5x5,
+  including oblongs like 2x3 and 3x5. They share one outline, one pyramid spanning the whole rectangle,
+  and one capacity, and an item added to or taken from any of them goes to whichever member most needs
+  it. Each block still keeps its own items and draws them as its cell of the larger pyramid, so nothing
+  moves between them.
 
-  Piles left over from a larger arrangement stay as individual pyramids: in a 2x3, one 2x2 merges and the
-  spare pair does not, which keeps two overlapping pyramids from ever disagreeing about where the apex is.
+  A pile beside a completed rectangle leaves it alone and stays loose until it completes a bigger one:
+  the biggest rectangle in a run of touching piles is taken as one pile, then the biggest in what is
+  left, and so on. That is what keeps two overlapping pyramids from disagreeing about where the apex is.
+  A run of more than 25 piles, or one spread more than five blocks in either direction, is more than one
+  pile can be and does not merge at all.
+
+  **How much fits** depends on what is holding the heap in. In the open a heap slumps into a pyramid and
+  a block holds 64; a walled side lets it stay wider for longer, up to 150 a block with all four sides
+  walled. A merged group is measured by its own perimeter, and a side only counts if it is walled along
+  its whole length - so a group filling a pit is a straight column, and knocking one block out of the pit
+  wall drops it to what three sides can hold. Whatever no longer fits trickles out through the gap.
+
+  **Pits flood.** Sneak-click material into a pit that is closed in on every side and it goes to the
+  emptiest spot on the pit floor, starting a pile there if there is not one yet, so the whole floor comes
+  up together the way poured material would. One gap anywhere in the walls and it is a dip in the open
+  ground rather than a pit, and material stays where it was put.
+
+  **Stacking.** Piles do not stack on top of each other - a pyramid does not balance on the point of
+  another one. Build upwards either against a wall, or on a merged group with every member full, which is
+  flat enough on top to take a next tier. Take an item back off any member and it is no longer full,
+  dropping whatever was resting on it.
 - **Leaning tools.** Aim at the side of a solid block with a tool in hand and press TFC's floor storage
   key to stand the tool up against the wall, in the style of Vintage Story. Up to four tools lean side by
   side in one block, and the block has no collision, so you can walk right through them.

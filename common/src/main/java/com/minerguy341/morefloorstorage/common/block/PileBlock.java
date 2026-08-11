@@ -1,5 +1,7 @@
 package com.minerguy341.morefloorstorage.common.block;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import com.minerguy341.morefloorstorage.common.blockentity.PileBlockEntity;
@@ -45,10 +47,15 @@ import org.jetbrains.annotations.Nullable;
  * pit, where it is a straight column. Widen the pit while it is in use and the heap slumps to suit:
  * whatever no longer fits trickles out through the gap, a few items a tick, until it does.
  * <p>
+ * Piles standing in a filled rectangle merge into one - see {@link PileGroup} - and from then on behave
+ * as a single heap: one outline, one pyramid spanning all of them, items added to or taken from any of
+ * them, and one capacity worked out from the rectangle's own perimeter. That is what lets a heap fill the
+ * floor of a pit rather than heaping up in one block, and what makes a pit worth digging: a group walled
+ * on all four sides is a column.
+ * <p>
  * A pyramid will not balance on the point of another one, so piles do not stack. The way up is to fill a
- * two by two: four full piles merge into a single pyramid spanning all four blocks, which is broad enough
- * to build the next tier on. Take an item back off any of the four and the merge breaks, dropping
- * whatever was resting on it.
+ * group: once every member is full it is broad and flat enough to build the next tier on. Take an item
+ * back off any of them and it is no longer full, dropping whatever was resting on it.
  * <p>
  * One instance is registered per kind of pile - see {@link MFSBlocks} - each with its own block entity
  * type and its own tag of items it accepts. Only piles of the same kind merge with each other, though a
@@ -74,23 +81,16 @@ public class PileBlock extends Block implements EntityBlock
     /** Ticks between one shed and the next while a heap is still slumping. */
     private static final int SPILL_INTERVAL = 2;
 
-    /**
-     * The four two by twos that could contain a given pile, by their minimum corner, in a fixed scan
-     * order. The order only has to be stable - {@link #groupOrigin} makes every member of a group agree
-     * on which group they are in.
-     */
-    private static final int[][] GROUP_CANDIDATES = {{-1, -1}, {-1, 0}, {0, -1}, {0, 0}};
-
     /** One shape per layer, each the union of that layer's step and every step below it. */
     private static final VoxelShape[][] SHAPES = buildShapes();
 
     /**
-     * A grouped pile's shape, indexed {@code [layer][quadrantX][quadrantZ]}. The outline spans the whole
-     * two by two - deliberately reaching outside its own block - so a group reads and targets as one
-     * pile. Collision keeps to the block it belongs to.
+     * A merged pile's shape, worked out the first time each combination is wanted rather than up front:
+     * spans, cells, walls and layers multiply out to tens of thousands of shapes, of which any one world
+     * uses a handful. The outline spans the whole group - deliberately reaching outside its own block -
+     * so a group reads and targets as one pile. Collision keeps to the block it belongs to.
      */
-    private static final VoxelShape[][][][] GROUP_OUTLINES = buildGroupShapes(false);
-    private static final VoxelShape[][][][] GROUP_COLLISION = buildGroupShapes(true);
+    private static final Map<Long, VoxelShape> GROUP_SHAPES = new ConcurrentHashMap<>();
 
     private static VoxelShape[][] buildShapes()
     {
@@ -110,126 +110,58 @@ public class PileBlock extends Block implements EntityBlock
         return shapes;
     }
 
-    private static VoxelShape[][][][] buildGroupShapes(boolean clipToBlock)
-    {
-        final VoxelShape[][][][] shapes =
-            new VoxelShape[PileLayout.MAX_WALLS + 1][PileLayout.LAYERS][2][2];
-        for (int walls = 0; walls <= PileLayout.MAX_WALLS; walls++)
-        {
-        for (int quadrantX = 0; quadrantX < 2; quadrantX++)
-        {
-            for (int quadrantZ = 0; quadrantZ < 2; quadrantZ++)
-            {
-                VoxelShape shape = Shapes.empty();
-                for (int layer = 0; layer < PileLayout.LAYERS; layer++)
-                {
-                    // The group's pyramid is 32 pixels across, offset so this block sits at the origin
-                    final int inset = PileLayout.mergedInsetOf(layer, walls);
-                    double minX = inset - quadrantX * 16;
-                    double maxX = 32 - inset - quadrantX * 16;
-                    double minZ = inset - quadrantZ * 16;
-                    double maxZ = 32 - inset - quadrantZ * 16;
-                    if (clipToBlock)
-                    {
-                        minX = Mth.clamp(minX, 0, 16);
-                        maxX = Mth.clamp(maxX, 0, 16);
-                        minZ = Mth.clamp(minZ, 0, 16);
-                        maxZ = Mth.clamp(maxZ, 0, 16);
-                    }
-                    if (maxX > minX && maxZ > minZ)
-                    {
-                        shape = Shapes.or(shape, box(
-                            minX, PileLayout.bottomOf(layer), minZ,
-                            maxX, PileLayout.topOf(layer), maxZ));
-                    }
-                    shapes[walls][layer][quadrantX][quadrantZ] = shape.optimize();
-                }
-            }
-        }
-        }
-        return shapes;
-    }
-
     /**
-     * Works out whether this pile is part of a two by two of piles of the same kind.
-     * <p>
-     * A group forms as soon as all four blocks exist, whatever they hold, because that is the point at
-     * which the player has said what they are building. From then on the four behave as one pile: one
-     * outline, one pyramid, and items added or taken from any of the four.
-     * <p>
-     * A pile can sit in up to four different two by twos, so the first valid one in a fixed scan order
-     * wins - and every member of that group has to independently pick the same group, otherwise a run of
-     * piles longer than two would produce overlapping pyramids that disagree about where the apex is.
-     * Piles left over from a larger arrangement simply stay as individual piles.
+     * One cell's view of a merged pile's pyramid, in this block's own coordinates - so it runs negative
+     * to the west and north of the cell, and past 16 to the east and south.
      *
-     * @return the minimum corner of the group, or {@code null} if this pile is on its own.
+     * @param clipToBlock keep the shape inside this block, for collision rather than outline
      */
-    public static @Nullable BlockPos groupOrigin(BlockGetter level, BlockPos pos)
+    private static VoxelShape groupShape(int walls, int layer, PileGroup group, int cellX, int cellZ, boolean clipToBlock)
     {
-        if (!(level.getBlockState(pos).getBlock() instanceof PileBlock pileBlock))
-        {
-            return null;
-        }
-        final BlockPos origin = firstGroup(level, pos, pileBlock);
-        if (origin == null)
-        {
-            return null;
-        }
-        for (int dx = 0; dx < 2; dx++)
-        {
-            for (int dz = 0; dz < 2; dz++)
+        final long key = (((((((long) walls * PileLayout.LAYERS + layer)
+            * PileGroup.MAX_SPAN + (group.spanX() - 1))
+            * PileGroup.MAX_SPAN + (group.spanZ() - 1))
+            * PileGroup.MAX_SPAN + cellX)
+            * PileGroup.MAX_SPAN + cellZ) << 1) | (clipToBlock ? 1 : 0);
+        return GROUP_SHAPES.computeIfAbsent(key, ignored -> {
+            VoxelShape shape = Shapes.empty();
+            for (int step = 0; step <= layer; step++)
             {
-                if (!origin.equals(firstGroup(level, origin.offset(dx, 0, dz), pileBlock)))
+                double minX = PileLayout.mergedInsetOf(step, walls, group.spanX()) - cellX * 16.0;
+                double maxX = group.spanX() * 16.0 - PileLayout.mergedInsetOf(step, walls, group.spanX()) - cellX * 16.0;
+                double minZ = PileLayout.mergedInsetOf(step, walls, group.spanZ()) - cellZ * 16.0;
+                double maxZ = group.spanZ() * 16.0 - PileLayout.mergedInsetOf(step, walls, group.spanZ()) - cellZ * 16.0;
+                if (clipToBlock)
                 {
-                    return null;
+                    minX = Mth.clamp(minX, 0, 16);
+                    maxX = Mth.clamp(maxX, 0, 16);
+                    minZ = Mth.clamp(minZ, 0, 16);
+                    maxZ = Mth.clamp(maxZ, 0, 16);
+                }
+                if (maxX > minX && maxZ > minZ)
+                {
+                    shape = Shapes.or(shape, box(
+                        minX, PileLayout.bottomOf(step), minZ,
+                        maxX, PileLayout.topOf(step), maxZ));
                 }
             }
-        }
-        return origin;
-    }
-
-    private static @Nullable BlockPos firstGroup(BlockGetter level, BlockPos pos, PileBlock pileBlock)
-    {
-        for (int[] candidate : GROUP_CANDIDATES)
-        {
-            final BlockPos origin = pos.offset(candidate[0], 0, candidate[1]);
-            if (isGroup(level, origin, pileBlock))
-            {
-                return origin;
-            }
-        }
-        return null;
-    }
-
-    private static boolean isGroup(BlockGetter level, BlockPos origin, PileBlock pileBlock)
-    {
-        for (int dx = 0; dx < 2; dx++)
-        {
-            for (int dz = 0; dz < 2; dz++)
-            {
-                // Same kind of pile throughout: clay and ore sitting side by side are two piles
-                if (!level.getBlockState(origin.offset(dx, 0, dz)).is(pileBlock))
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
+            return shape.optimize();
+        });
     }
 
     /**
      * @return {@code true} if every pile in the group is full, which is what lets another pile be built
      * on top of it.
      */
-    public static boolean isGroupFull(BlockGetter level, BlockPos origin)
+    public static boolean isGroupFull(BlockGetter level, PileGroup group)
     {
         // Capacity is uniform across a group, so work it out once rather than per member
-        final int capacity = capacityAt(level, origin);
-        for (int dx = 0; dx < 2; dx++)
+        final int capacity = capacityAt(level, group.origin());
+        for (int cellX = 0; cellX < group.spanX(); cellX++)
         {
-            for (int dz = 0; dz < 2; dz++)
+            for (int cellZ = 0; cellZ < group.spanZ(); cellZ++)
             {
-                if (level.getBlockState(origin.offset(dx, 0, dz)).getValue(COUNT) < capacity)
+                if (level.getBlockState(group.member(cellX, cellZ)).getValue(COUNT) < capacity)
                 {
                     return false;
                 }
@@ -242,24 +174,27 @@ public class PileBlock extends Block implements EntityBlock
      * The tallest layer any member of the group has reached, which is how tall the group's shared
      * pyramid is drawn and outlined.
      */
-    private static int groupLayer(BlockGetter level, BlockPos origin, int walls)
+    private static int groupLayer(BlockGetter level, PileGroup group, int walls)
     {
         int layer = 0;
-        for (int dx = 0; dx < 2; dx++)
+        for (int cellX = 0; cellX < group.spanX(); cellX++)
         {
-            for (int dz = 0; dz < 2; dz++)
+            for (int cellZ = 0; cellZ < group.spanZ(); cellZ++)
             {
-                final BlockPos member = origin.offset(dx, 0, dz);
                 layer = Math.max(layer, PileLayout.layerOf(
-                    level.getBlockState(member).getValue(COUNT) - 1, walls));
+                    level.getBlockState(group.member(cellX, cellZ)).getValue(COUNT) - 1, walls));
             }
         }
         return layer;
     }
 
     /**
-     * Which way a pile heaps: towards its neighbours of the same kind, so piles put down next to each
-     * other lean together instead of each sitting squarely in the middle of its own block.
+     * Which way a pile heaps.
+     * <p>
+     * Inside a group, towards the middle of the group, so the shared pyramid builds up from its centre
+     * however the members happen to be filled. On its own, towards whichever neighbours of the same kind
+     * it has, so piles put down next to each other lean together rather than each sitting squarely in
+     * the middle of its own block - which is what they are about to become when the rectangle completes.
      *
      * @return an index for {@link PileLayout#cellOf}
      */
@@ -268,6 +203,13 @@ public class PileBlock extends Block implements EntityBlock
         if (!(level.getBlockState(pos).getBlock() instanceof PileBlock pileBlock))
         {
             return PileLayout.LEAN_NONE;
+        }
+        final PileGroup group = PileGroup.at(level, pos);
+        if (group != null)
+        {
+            return PileLayout.lean(
+                Integer.signum(group.spanX() - 1 - 2 * group.cellX(pos)),
+                Integer.signum(group.spanZ() - 1 - 2 * group.cellZ(pos)));
         }
         int leanX = 0;
         int leanZ = 0;
@@ -286,31 +228,31 @@ public class PileBlock extends Block implements EntityBlock
     }
 
     /**
-     * @return the member of the group that should take the next item, so the shared pyramid grows evenly
-     * rather than one quarter at a time.
+     * @return the member of the group holding the fewest, which is where the next item goes so that the
+     * shared pyramid grows evenly rather than one cell at a time.
      */
-    public static BlockPos memberToFill(BlockGetter level, BlockPos origin)
+    public static BlockPos memberToFill(BlockGetter level, PileGroup group)
     {
-        return extremeMember(level, origin, true);
+        return extremeMember(level, group, true);
     }
 
     /**
      * @return the member holding the most, which is where the next item comes off.
      */
-    public static BlockPos memberToEmpty(BlockGetter level, BlockPos origin)
+    public static BlockPos memberToEmpty(BlockGetter level, PileGroup group)
     {
-        return extremeMember(level, origin, false);
+        return extremeMember(level, group, false);
     }
 
-    private static BlockPos extremeMember(BlockGetter level, BlockPos origin, boolean fewest)
+    private static BlockPos extremeMember(BlockGetter level, PileGroup group, boolean fewest)
     {
-        BlockPos best = origin;
+        BlockPos best = group.origin();
         int bestCount = -1;
-        for (int dx = 0; dx < 2; dx++)
+        for (int cellX = 0; cellX < group.spanX(); cellX++)
         {
-            for (int dz = 0; dz < 2; dz++)
+            for (int cellZ = 0; cellZ < group.spanZ(); cellZ++)
             {
-                final BlockPos member = origin.offset(dx, 0, dz);
+                final BlockPos member = group.member(cellX, cellZ);
                 final int count = level.getBlockState(member).getValue(COUNT);
                 // Strictly better only, so ties fall to the first in a fixed order and stay stable
                 if (bestCount == -1 || (fewest ? count < bestCount : count > bestCount))
@@ -348,9 +290,9 @@ public class PileBlock extends Block implements EntityBlock
             topPos = topPos.above();
         }
 
-        // Within a group the four blocks are one pile, so take from whichever holds the most and the
-        // shared pyramid comes down evenly, no matter which quarter was clicked
-        final BlockPos group = groupOrigin(level, topPos);
+        // A group is one pile, so take from whichever member holds the most and the shared pyramid comes
+        // down evenly, no matter which cell of it was clicked
+        final PileGroup group = PileGroup.at(level, topPos);
         if (group != null)
         {
             topPos = memberToEmpty(level, group);
@@ -387,8 +329,9 @@ public class PileBlock extends Block implements EntityBlock
             level.setBlock(topPos, topState.setValue(COUNT, count - taken), Block.UPDATE_CLIENTS);
         }
 
-        // This pile is no longer full, so anything the merged pyramid was holding up has to be rechecked
-        updateDependentPiles(level, topPos);
+        // This pile is no longer full, so anything the merged pyramid was holding up has to be rechecked.
+        // Emptying it altogether is a change of shape too, but that goes through onRemove.
+        updateSupportedPiles(level, topPos);
 
         final SoundType sound = topState.getSoundType();
         level.playSound(null, topPos, sound.getBreakSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 4f, sound.getPitch() * 0.8f);
@@ -425,12 +368,12 @@ public class PileBlock extends Block implements EntityBlock
         {
             // A pyramid does not balance on the point of another one, so heaping higher needs something
             // holding the material in: a wall to pile against or a pit to pile into, or failing that a
-            // full two by two below, which is broad and flat enough to carry the next tier itself.
+            // full group below, which is broad and flat enough to carry the next tier itself.
             if (walledSides(level, pos) >= WALLS_TO_BRACE)
             {
                 return true;
             }
-            final BlockPos group = groupOrigin(level, below);
+            final PileGroup group = PileGroup.at(level, below);
             return group != null && isGroupFull(level, group);
         }
         return belowState.isFaceSturdy(level, below, Direction.UP);
@@ -439,27 +382,45 @@ public class PileBlock extends Block implements EntityBlock
     /**
      * How many sides are holding this pile in, and so how much it can hold.
      * <p>
-     * Within a group the answer has to be the same for all four, or their quadrants would be different
-     * sizes and the shared pyramid would not line up. It is the best-braced member that decides, never
-     * the worst: a pile's capacity must never fall when a group forms around it, or whatever it is
-     * already holding would have nowhere to go.
+     * A merged group is one heap, so what holds it in is its own perimeter: a side counts only if it is
+     * walled along its whole length. A group filling a pit is walled on all four sides and stands as a
+     * column; knock one block out of the pit and that side is open, the group is a side short, and the
+     * heap slumps to the amount the remaining walls can hold. Individual members' walls do not come into
+     * it - a pile in the middle of a group has none, and a group has to answer with one number or its
+     * cells would be different sizes and the shared pyramid would not line up.
      */
     public static int wallsAt(BlockGetter level, BlockPos pos)
     {
-        final BlockPos origin = groupOrigin(level, pos);
-        if (origin == null)
+        final PileGroup group = PileGroup.at(level, pos);
+        if (group == null)
         {
             return walledSides(level, pos);
         }
         int walls = 0;
-        for (int dx = 0; dx < 2; dx++)
+        for (Direction direction : Direction.Plane.HORIZONTAL)
         {
-            for (int dz = 0; dz < 2; dz++)
+            if (isEdgeWalled(level, group, direction))
             {
-                walls = Math.max(walls, walledSides(level, origin.offset(dx, 0, dz)));
+                walls++;
             }
         }
         return walls;
+    }
+
+    /**
+     * @return whether every block along one side of the group is backed by a wall. One gap anywhere
+     * along it and the heap has somewhere to go, so the whole side counts for nothing.
+     */
+    private static boolean isEdgeWalled(BlockGetter level, PileGroup group, Direction direction)
+    {
+        for (BlockPos member : group.edge(direction))
+        {
+            if (!isWall(level, member, direction))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -505,22 +466,16 @@ public class PileBlock extends Block implements EntityBlock
         // Down for the floor, horizontals because a wall this pile was leaning on may have gone
         if (direction == Direction.DOWN || direction.getAxis().isHorizontal())
         {
-            // A group's capacity comes from its best-braced member, so a wall lost beside any one of
-            // the four is lost for all four - including the three that never see a block update
-            final BlockPos origin = groupOrigin(level, pos);
-            if (origin == null)
+            // A group's capacity comes from its perimeter, so a wall lost beside any one member is lost
+            // for the whole group - including the members that never see a block update
+            final PileGroup group = PileGroup.at(level, pos);
+            if (group == null)
             {
                 level.scheduleTick(pos, this, 1);
             }
             else
             {
-                for (int dx = 0; dx < 2; dx++)
-                {
-                    for (int dz = 0; dz < 2; dz++)
-                    {
-                        level.scheduleTick(origin.offset(dx, 0, dz), this, 1);
-                    }
-                }
+                group.forEach(member -> level.scheduleTick(member, this, 1));
             }
         }
         return state;
@@ -530,24 +485,39 @@ public class PileBlock extends Block implements EntityBlock
      * Rechecks every pile whose footing or capacity depends on this one, none of which finds out any
      * other way.
      * <p>
-     * The eight around it, because any of them may share a two by two with it, and a group's capacity is
-     * its best-braced member's: break the group up and the three left behind can be holding more than
-     * they can now shape. Only two of those three are neighbours in the sense the game means, and
-     * diagonals never get a block update.
+     * Everything within a group's reach of it, because adding or removing one pile re-cuts the whole run
+     * of touching piles into rectangles: piles that were merged can come apart, and their capacity falls
+     * with the perimeter they lose. Most of those never get a block update - diagonals never do, and
+     * nothing more than one block away does.
      * <p>
-     * The nine above, because a pile up there rests on a whole two by two below, and again three
-     * quarters of it is diagonal.
+     * And the nine above, because a pile up there rests on the group below being full.
      */
     private static void updateDependentPiles(Level level, BlockPos pos)
     {
-        for (int dx = -1; dx <= 1; dx++)
+        final int reach = PileGroup.MAX_SPAN - 1;
+        for (int dx = -reach; dx <= reach; dx++)
         {
-            for (int dz = -1; dz <= 1; dz++)
+            for (int dz = -reach; dz <= reach; dz++)
             {
                 if (dx != 0 || dz != 0)
                 {
                     schedulePile(level, pos.offset(dx, 0, dz));
                 }
+            }
+        }
+        updateSupportedPiles(level, pos);
+    }
+
+    /**
+     * Rechecks the piles resting on this one. A pile above is carried by a whole group, three quarters
+     * of which are diagonal neighbours that never get an ordinary block update.
+     */
+    private static void updateSupportedPiles(Level level, BlockPos pos)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dz = -1; dz <= 1; dz++)
+            {
                 schedulePile(level, pos.above().offset(dx, 0, dz));
             }
         }
@@ -598,19 +568,24 @@ public class PileBlock extends Block implements EntityBlock
             {
                 level.scheduleTick(pos, this, SPILL_INTERVAL);
             }
-            updateDependentPiles(level, pos);
+            // Only what is resting on this: shedding changes how full the group is, not its shape, and
+            // this runs once per shed so it must not go re-scanning the neighbourhood each time
+            updateSupportedPiles(level, pos);
         }
     }
 
     /**
      * @return a side that is no longer holding this heap in, so spill goes out through the gap rather
-     * than up out of the middle, or {@code null} if the pile is walled in on all four sides.
+     * than up out of the middle, or {@code null} if it is walled in on all four sides.
      */
     private static @Nullable Direction openSide(BlockGetter level, BlockPos pos)
     {
+        // A member in the middle of a group has no walls of its own but is not open either, so it is the
+        // group's perimeter that says where the material can actually get out
+        final PileGroup group = PileGroup.at(level, pos);
         for (Direction direction : Direction.Plane.HORIZONTAL)
         {
-            if (!isWall(level, pos, direction))
+            if (group == null ? !isWall(level, pos, direction) : !isEdgeWalled(level, group, direction))
             {
                 return direction;
             }
@@ -646,14 +621,14 @@ public class PileBlock extends Block implements EntityBlock
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context)
     {
-        return shapeAt(state, level, pos, GROUP_OUTLINES);
+        return shapeAt(state, level, pos, false);
     }
 
     @Override
     protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context)
     {
         // Collision stays inside the block; only the outline is allowed to span the group
-        return shapeAt(state, level, pos, GROUP_COLLISION);
+        return shapeAt(state, level, pos, true);
     }
 
     /**
@@ -674,14 +649,14 @@ public class PileBlock extends Block implements EntityBlock
         return SHAPES[0][PileLayout.layerOf(state.getValue(COUNT) - 1, 0)];
     }
 
-    private VoxelShape shapeAt(BlockState state, BlockGetter level, BlockPos pos, VoxelShape[][][][] grouped)
+    private VoxelShape shapeAt(BlockState state, BlockGetter level, BlockPos pos, boolean clipToBlock)
     {
         final int walls = wallsAt(level, pos);
-        final BlockPos origin = groupOrigin(level, pos);
-        if (origin != null)
+        final PileGroup group = PileGroup.at(level, pos);
+        if (group != null)
         {
-            return grouped[walls][groupLayer(level, origin, walls)]
-                [pos.getX() - origin.getX()][pos.getZ() - origin.getZ()];
+            return groupShape(walls, groupLayer(level, group, walls), group,
+                group.cellX(pos), group.cellZ(pos), clipToBlock);
         }
         return SHAPES[walls][PileLayout.layerOf(state.getValue(COUNT) - 1, walls)];
     }

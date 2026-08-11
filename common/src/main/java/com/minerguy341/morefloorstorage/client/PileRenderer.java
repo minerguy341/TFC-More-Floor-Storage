@@ -3,6 +3,7 @@ package com.minerguy341.morefloorstorage.client;
 import java.util.List;
 
 import com.minerguy341.morefloorstorage.common.block.PileBlock;
+import com.minerguy341.morefloorstorage.common.block.PileGroup;
 import com.minerguy341.morefloorstorage.common.block.PileLayout;
 import com.minerguy341.morefloorstorage.common.blockentity.PileBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -51,15 +52,15 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
         final int seed = pos.hashCode();
         final VertexConsumer buffer = buffers.getBuffer(RenderType.cutout());
 
-        // A group of four draws as one pyramid spanning the whole two by two, each block contributing
-        // its own quadrant. Doubling a layer's grid quadruples it, so four full piles fill it exactly.
-        // Each block heaps towards the group's middle, which is the corner it shares with the others.
-        final BlockPos origin = PileBlock.groupOrigin(level, pos);
+        // A merged group draws as one pyramid spanning the whole rectangle, each block contributing its
+        // own cell of it. Multiplying a layer's grid by the span in both directions multiplies its cells
+        // by the number of blocks, so a full group fills it exactly.
+        final PileGroup group = PileGroup.at(level, pos);
         final int lean = PileBlock.leanOf(level, pos);
         // Walls widen every layer, so they decide the grid the lumps are laid out on
         final int walls = PileBlock.wallsAt(level, pos);
-        final int quadrantX = origin == null ? 0 : pos.getX() - origin.getX();
-        final int quadrantZ = origin == null ? 0 : pos.getZ() - origin.getZ();
+        final int cellX = group == null ? 0 : group.cellX(pos);
+        final int cellZ = group == null ? 0 : group.cellZ(pos);
 
         // Knock a wall out from beside a full pit and the heap holds more than its new shape has room
         // for until it has finished spilling. Draw what fits: the rest is leaving.
@@ -81,18 +82,20 @@ public class PileRenderer implements BlockEntityRenderer<PileBlockEntity>
             final int row = cell / grid;
 
             // Offsets are from the centre of this block when standing alone, and from the centre of the
-            // two by two when merged - which is a corner of this block, hence the (1 - quadrant) shift.
+            // group when merged - so they are shifted back by however far this cell is from that centre.
             final float x;
             final float z;
-            if (origin == null)
+            if (group == null)
             {
                 x = 0.5f + PileLayout.offsetInLayer(layer, column, walls);
                 z = 0.5f + PileLayout.offsetInLayer(layer, row, walls);
             }
             else
             {
-                x = (1 - quadrantX) + PileLayout.offsetInMergedLayer(layer, quadrantX * grid + column, walls);
-                z = (1 - quadrantZ) + PileLayout.offsetInMergedLayer(layer, quadrantZ * grid + row, walls);
+                x = (group.spanX() / 2f - cellX)
+                    + PileLayout.offsetInMergedLayer(layer, cellX * grid + column, walls, group.spanX());
+                z = (group.spanZ() / 2f - cellZ)
+                    + PileLayout.offsetInMergedLayer(layer, cellZ * grid + row, walls, group.spanZ());
             }
 
             pose.pushPose();

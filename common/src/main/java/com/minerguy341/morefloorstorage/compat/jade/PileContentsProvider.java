@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.minerguy341.morefloorstorage.MoreFloorStorage;
 import com.minerguy341.morefloorstorage.common.block.PileBlock;
+import com.minerguy341.morefloorstorage.common.block.PileGroup;
 import com.minerguy341.morefloorstorage.common.blockentity.PileBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -34,10 +35,10 @@ public enum PileContentsProvider implements IBlockComponentProvider
         final Level level = accessor.getLevel();
         final BlockPos pos = accessor.getPosition();
         final Map<Item, Integer> counts = new LinkedHashMap<>(); // Deterministic line order
-        int capacity = 0;
+        final int capacity;
 
-        final BlockPos origin = PileBlock.groupOrigin(level, pos);
-        if (origin == null)
+        final PileGroup group = PileGroup.at(level, pos);
+        if (group == null)
         {
             capacity = PileBlock.capacityAt(level, pos);
             if (accessor.getBlockEntity() instanceof PileBlockEntity pile)
@@ -47,18 +48,14 @@ public enum PileContentsProvider implements IBlockComponentProvider
         }
         else
         {
-            for (int dx = 0; dx < 2; dx++)
-            {
-                for (int dz = 0; dz < 2; dz++)
+            // Capacity is uniform across a group, so one lookup rather than one per member
+            capacity = PileBlock.capacityAt(level, group.origin()) * group.size();
+            group.forEach(member -> {
+                if (level.getBlockEntity(member) instanceof PileBlockEntity pile)
                 {
-                    final BlockPos member = origin.offset(dx, 0, dz);
-                    capacity += PileBlock.capacityAt(level, member);
-                    if (level.getBlockEntity(member) instanceof PileBlockEntity pile)
-                    {
-                        pile.countInto(counts);
-                    }
+                    pile.countInto(counts);
                 }
-            }
+            });
         }
 
         PileBlockEntity.describe(counts, tooltip::add);
