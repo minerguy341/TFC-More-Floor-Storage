@@ -27,12 +27,17 @@ public final class ModTags
     );
 
     /**
-     * Longer sprites that sat too far from the wall; nudged closer so tips meet the face
-     * (knives, chisels, tuyeres, saws, swords, maces, rods, spindle, firestarter).
+     * Longer sprites that need a room-side wall offset (saws, chisels, swords, maces, rods, etc.).
      */
     public static final TagKey<Item> LEAN_CLEAR_WALL = TagKey.create(
         Registries.ITEM,
         new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "lean_clear_wall")
+    );
+
+    /** Knives and tuyeres: same clear-wall group, seated 0.05 closer to the wall. */
+    public static final TagKey<Item> LEAN_CLOSER_WALL = TagKey.create(
+        Registries.ITEM,
+        new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "lean_closer_wall")
     );
 
     private ModTags() {}
