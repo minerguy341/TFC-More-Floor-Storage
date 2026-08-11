@@ -7,6 +7,7 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
@@ -20,13 +21,22 @@ public class TFCMoreFloorStorage
     public TFCMoreFloorStorage()
     {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModBlocks.BLOCKS.register(modBus);
+        ModBlockEntities.BLOCK_ENTITIES.register(modBus);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, IngotMeshClientConfig.SPEC);
+
+        modBus.addListener(this::onCommonSetup);
 
         if (FMLEnvironment.dist == Dist.CLIENT)
         {
-            LOGGER.info("TFC More Floor Storage: ingot mesh experiment loaded (client). Edit config/tfcmorefloorstorage-client.toml then press F3+T.");
             modBus.addListener(this::onClientSetup);
         }
+    }
+
+    private void onCommonSetup(FMLCommonSetupEvent event)
+    {
+        event.enqueueWork(ClayPiling::register);
+        LOGGER.info("Registered clay pile interaction (shift-click clay balls, capacity {}).", ClayPileBlock.MAX_COUNT);
     }
 
     private void onClientSetup(FMLClientSetupEvent event)

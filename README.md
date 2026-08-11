@@ -1,50 +1,28 @@
 # TFC More Floor Storage
 
-Experimental TerraFirmaCraft addon (Minecraft **1.20.1** / Forge **47.3.x**) focused on manipulating the **procedural ingot pile meshes** TFC draws in code.
+Experimental TerraFirmaCraft addon (Minecraft **1.20.1** / Forge **47.3.x**) for denser **clay floor piles**, plus optional ingot-mesh tweaks.
 
-## Why this exists
+## Clay pile (custom block)
 
-TFC ingot piles are not JSON/OBJ models. Blockstates point at custom geometry loaders:
+Shift-click **vanilla clay balls** to place a dedicated `clay_pile` block (not the metal ingot pile).
 
-- `assets/tfc/models/block/ingot_pile.json` → `{ "loader": "tfc:ingot_pile" }`
-- `assets/tfc/models/block/double_ingot_pile.json` → `{ "loader": "tfc:double_ingot_pile" }`
+| | |
+|--|--|
+| Capacity | **128** (double an ingot pile’s 64) |
+| Layout | **4×4** neat grid per layer, **8** layers |
+| Mesh | Half-length square blobs (`7×4×7.5` texels), clay texture |
+| Origin | First blob flush to the **block corner** (no centering / criss-cross) |
 
-Those loaders are `IngotPileBlockModel` / `DoubleIngotPileBlockModel`, which emit trapezoidal cuboids via `RenderHelpers.renderTexturedTrapezoidalCuboid` using each metal’s `softTextureId()`.
+Click without shift to take clay off the top of the stack. Air-click knapping is unchanged.
 
-This mod mixins into those `render` methods and rebuilds the same layout with **config-driven sizes**.
+## Metal ingot mesh (optional)
 
-## Defaults (vanilla TFC look)
-
-| Pile | Grid / layer | Texel size (W×H×L) |
-|------|--------------|--------------------|
-| Ingot | 4×2, 8 per layer, alt. 90° | ~7×4×15 |
-| Double ingot | 3×2, 6 per layer, alt. 90° | ~10×5×15 |
-
-Capacity (`COUNT` / `DOUBLE_COUNT`) is **not** changed yet — only the mesh.
-
-### Vanilla clay special case
-
-If a pile entry is `minecraft:clay_ball`, that piece is drawn at **half length** (~7.5 texels vs 7 wide → square blob), centered in its slot, textured with `minecraft:block/clay`, and stacked in a **neat same-orientation grid** (no alternating 90° criss-cross). Row spacing is tightened to `0.25` so the short blobs sit as a compact stack. Other metals keep the normal bar shape and criss-cross layout.
-
-Clay balls are added to `tfc:pileable_ingots`, so **shift-click** places them like ingots (same as TFC metal piling). Air-click knapping is unchanged.
-
-## Tweaking
-
-Edit `config/tfcmorefloorstorage-client.toml` after first launch, then press **F3+T** (or relog) so static pile models rebuild.
-
-Useful knobs:
-
-- `enabled` — turn the override off to restore stock TFC meshes
-- `sizeScale` — shrink/grow bars (try `0.85` for denser-looking piles)
-- `layerHeightScale` — vertical packing
-- `single_ingot.*` / `double_ingot.*` — per-axis texel sizes
-- `matchVanillaScaleQuirk` — keep TFC’s nested `scale * (min + size)` math (`true`) or use cleaner bounds (`false`)
+Mixins can still override TFC ingot / double-ingot bar sizes via `config/tfcmorefloorstorage-client.toml`. Defaults match stock TFC. Press **F3+T** after edits.
 
 ## Dev
 
 ```bash
-./gradlew genIntellijRuns
 ./gradlew runClient
 ```
 
-Requires a JDK **17** toolchain. TFC **3.2.23** is pulled from CurseMaven; Patchouli is a runtime dependency.
+Requires JDK **17**. TFC **3.2.23** via CurseMaven; Patchouli at runtime.

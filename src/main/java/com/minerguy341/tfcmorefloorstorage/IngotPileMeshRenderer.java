@@ -1,10 +1,7 @@
 package com.minerguy341.tfcmorefloorstorage;
 
-import java.util.List;
 import java.util.function.Function;
 
-import com.minerguy341.tfcmorefloorstorage.mixin.IngotPileBlockEntityAccessor;
-import com.minerguy341.tfcmorefloorstorage.mixin.IngotPileEntryAccessor;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -14,25 +11,13 @@ import net.dries007.tfc.util.Metal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 /**
- * Procedural ingot / double-ingot drawing, adapted from TFC's
- * {@code IngotPileBlockModel} / {@code DoubleIngotPileBlockModel} with config-driven sizes.
- * <p>
- * Layout (single): layers of 8 on a 4×2 grid, alternating 90° yaw.
- * Layout (double): layers of 6 on a 3×2 grid, alternating 90° yaw.
- * <p>
- * Special case: vanilla {@link Items#CLAY_BALL} uses half length (≈ square blob), the clay
- * block texture, and a neat same-orientation stack (no alternating 90° criss-cross).
+ * Optional config-driven override for TFC metal ingot / double-ingot pile meshes.
+ * Clay uses {@link ClayPileBlockModel} instead.
  */
 public final class IngotPileMeshRenderer
 {
-    /** Half of the default 15-texel length → ~7.5, close to the 7-texel width. */
-    private static final float VANILLA_CLAY_LENGTH_FACTOR = 0.5f;
-    private static final ResourceLocation VANILLA_CLAY_TEXTURE = new ResourceLocation("minecraft", "block/clay");
-
     private IngotPileMeshRenderer() {}
 
     public static TextureAtlasSprite renderSingle(
@@ -51,10 +36,10 @@ public final class IngotPileMeshRenderer
             packedLight,
             packedOverlay,
             ingots,
-            /*perLayer*/ 8,
-            /*gridX*/ 4,
-            /*cellX*/ 0.25f,
-            /*baseLayerHeight*/ 0.125f,
+            8,
+            4,
+            0.25f,
+            0.125f,
             IngotMeshClientConfig.INGOT_WIDTH_TEXELS.get().floatValue(),
             IngotMeshClientConfig.INGOT_HEIGHT_TEXELS.get().floatValue(),
             IngotMeshClientConfig.INGOT_LENGTH_TEXELS.get().floatValue(),
@@ -78,10 +63,10 @@ public final class IngotPileMeshRenderer
             packedLight,
             packedOverlay,
             ingots,
-            /*perLayer*/ 6,
-            /*gridX*/ 3,
-            /*cellX*/ 0.33f,
-            /*baseLayerHeight*/ 1f / 6f,
+            6,
+            3,
+            0.33f,
+            1f / 6f,
             IngotMeshClientConfig.DOUBLE_WIDTH_TEXELS.get().floatValue(),
             IngotMeshClientConfig.DOUBLE_HEIGHT_TEXELS.get().floatValue(),
             IngotMeshClientConfig.DOUBLE_LENGTH_TEXELS.get().floatValue(),
@@ -114,41 +99,24 @@ public final class IngotPileMeshRenderer
         final float bevel = IngotMeshClientConfig.TRAPEZOID_BEVEL_TEXELS.get().floatValue() * sizeScale;
         final boolean quirk = IngotMeshClientConfig.MATCH_VANILLA_SCALE_QUIRK.get();
 
-        final float baseWidth = widthTexels * sizeScale;
-        final float baseHeight = heightTexels * sizeScale;
-        final float baseLength = lengthTexels * sizeScale;
+        widthTexels *= sizeScale;
+        heightTexels *= sizeScale;
+        lengthTexels *= sizeScale;
 
         TextureAtlasSprite sprite = null;
         for (int i = 0; i < ingots; i++)
         {
-            final ItemStack stack = stackAt(pile, i);
-            final boolean vanillaClay = stack.is(Items.CLAY_BALL);
-
-            float pieceWidth = baseWidth;
-            float pieceHeight = baseHeight;
-            float pieceLength = baseLength;
-
-            if (vanillaClay)
-            {
-                pieceLength *= VANILLA_CLAY_LENGTH_FACTOR;
-                sprite = textureAtlas.apply(VANILLA_CLAY_TEXTURE);
-            }
-            else
-            {
-                final Metal metal = pile.getOrCacheMetal(i);
-                sprite = textureAtlas.apply(metal.getSoftTextureId());
-            }
+            final Metal metal = pile.getOrCacheMetal(i);
+            sprite = textureAtlas.apply(metal.getSoftTextureId());
 
             final int layer = (i + perLayer) / perLayer;
             final boolean oddLayer = (layer % 2) == 1;
-            // Clay: same orientation every layer (no TFC criss-cross), tighter 4×2 / 3×2 packing for square blobs.
-            final float cellZ = vanillaClay ? 0.25f : 0.5f;
             final float x = (i % gridX) * cellX;
             final float y = (layer - 1) * layerHeight;
-            final float z = i % perLayer >= gridX ? cellZ : 0;
+            final float z = i % perLayer >= gridX ? 0.5f : 0;
 
             poseStack.pushPose();
-            if (oddLayer && !vanillaClay)
+            if (oddLayer)
             {
                 poseStack.translate(0.5f, 0f, 0.5f);
                 poseStack.mulPose(Axis.YP.rotationDegrees(90f));
@@ -158,16 +126,8 @@ public final class IngotPileMeshRenderer
             poseStack.translate(x, y, z);
 
             final float scale = 0.0625f / 2f;
-            // Keep shortened clay blobs centered in the slot along length.
-            if (vanillaClay)
-            {
-                final float lengthDelta = baseLength - pieceLength;
-                poseStack.translate(0f, 0f, scale * (lengthDelta * 0.5f));
-            }
-
-            final CuboidBounds bounds = cuboidBounds(scale, insetTexels, pieceWidth, pieceHeight, pieceLength, quirk);
+            final CuboidBounds bounds = cuboidBounds(scale, insetTexels, widthTexels, heightTexels, lengthTexels, quirk);
             final float bevelWorld = scale * bevel;
-            final boolean invertNormal = oddLayer && !vanillaClay;
 
             RenderHelpers.renderTexturedTrapezoidalCuboid(
                 poseStack,
@@ -185,10 +145,10 @@ public final class IngotPileMeshRenderer
                 bounds.maxZ - bevelWorld,
                 bounds.minY,
                 bounds.maxY,
-                pieceWidth,
-                pieceHeight,
-                pieceLength,
-                invertNormal
+                widthTexels,
+                heightTexels,
+                lengthTexels,
+                oddLayer
             );
 
             poseStack.popPose();
@@ -201,10 +161,6 @@ public final class IngotPileMeshRenderer
         return sprite;
     }
 
-    /**
-     * Builds world-space AABB for one ingot.
-     * When {@code quirk} is true, mirrors TFC's {@code max = scale * (min + size)} math.
-     */
     static CuboidBounds cuboidBounds(
         float scale,
         float insetTexels,
@@ -234,16 +190,6 @@ public final class IngotPileMeshRenderer
             maxZ = scale * (insetTexels + lengthTexels);
         }
         return new CuboidBounds(minX, maxX, minY, maxY, minZ, maxZ);
-    }
-
-    private static ItemStack stackAt(IngotPileBlockEntity pile, int index)
-    {
-        final List<Object> entries = ((IngotPileBlockEntityAccessor) pile).tfcmfs$getEntries();
-        if (index < 0 || index >= entries.size())
-        {
-            return ItemStack.EMPTY;
-        }
-        return ((IngotPileEntryAccessor) entries.get(index)).tfcmfs$getStack();
     }
 
     record CuboidBounds(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {}
