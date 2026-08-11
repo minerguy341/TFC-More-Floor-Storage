@@ -44,6 +44,20 @@ Single loader (NeoForge), built for multiple Minecraft versions from one shared 
 TerraFirmaCraft is resolved from the Modrinth maven, and Patchouli (which TFC requires at runtime) from
 the BlameJared maven. Both are configured in the convention plugin; no manual jar dropping is needed.
 
+### Mods in the dev run
+
+Anything with a `<name>Version` property in `versions/<mc>/gradle.properties` is fetched and put on the
+run classpath. Jade is there for testing: it reads a pile's `count` straight off the block state, and it
+is the tooltip mod most likely to disagree with a block that draws its own contents. Blank the property
+to leave it out.
+
+Jade shows block state properties only once **Show Block States** is switched on, under Block in its
+config screen; the pile's `count` is what that reveals.
+
+For a mod the build cannot fetch - behind a blocked maven, never published to one, or a specific build
+being chased - drop the jar in `versions/<mc>/libs` instead. It joins the run classpath the same way and
+is not committed.
+
 ## Project layout
 
 ```

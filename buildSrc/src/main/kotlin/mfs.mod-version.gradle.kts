@@ -175,4 +175,14 @@ dependencies {
 
     // So every mod on the run classpath is one this file names. Patchouli is required by TFC itself.
     optionalVersionProp("patchouliVersion")?.let { runtimeOnly("vazkii.patchouli:Patchouli:$it") }
+
+    // Mods wanted in the dev run but not compiled against: tooltip overlays to read a pile's count off,
+    // and whatever else is worth checking this mod does not upset. Non-transitive for the same reason
+    // TerraFirmaCraft is - a Modrinth POM lists whatever the project page lists, optional deps included.
+    optionalVersionProp("jadeVersion")?.let { runtimeOnly("maven.modrinth:jade:$it") { isTransitive = false } }
+
+    // Anything dropped in versions/<mc>/libs joins the run classpath as a mod. The mavens above are not
+    // reachable from every network this is built on, and not every mod worth testing against publishes
+    // to one at all, so a downloaded jar is always a way in.
+    runtimeOnly(fileTree(versionDir.dir("libs")) { include("*.jar") })
 }
