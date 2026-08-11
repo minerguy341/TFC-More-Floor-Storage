@@ -18,5 +18,14 @@ public final class ModTags
         new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "leanable")
     );
 
+    /**
+     * Flat sprites that face the wrong way when leaned; yaw-flipped before the lean tip
+     * (knives, chisels, tuyeres, saws).
+     */
+    public static final TagKey<Item> LEAN_FLIP_FACING = TagKey.create(
+        Registries.ITEM,
+        new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "lean_flip_facing")
+    );
+
     private ModTags() {}
 }

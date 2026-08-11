@@ -16,7 +16,8 @@ import net.minecraft.world.level.Level;
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
  * <p>
  * Lean ({@code XP}) is applied before the upright turn so flat sprites tip into the wall.
- * A yaw face-flip after leaning reverses that tip and makes tools look vertical.
+ * Some tools ({@link ModTags#LEAN_FLIP_FACING}) need a yaw flip before leaning so the blade
+ * faces left; that flip also swaps local {@code ±Z}, so the lean sign is inverted for those.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
@@ -59,6 +60,7 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
 
             final BakedModel model = Minecraft.getInstance().getItemRenderer().getModel(stack, level, null, seed);
             final boolean flatSprite = !model.isGui3d();
+            final boolean flipFacing = stack.is(ModTags.LEAN_FLIP_FACING);
             final float lateral = large
                 ? 0f
                 : (slot - (LeaningToolBlock.SLOTS - 1) / 2f) * SLOT_SPACING;
@@ -67,9 +69,14 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
-            // Foot near wall, then tip into -Z, then stand flat sprites upright in that leaned frame.
+            // Foot near wall; optional left-facing yaw; tip into wall; stand flat sprites upright.
             pose.translate(lateral, CENTER_Y, WALL_OFFSET);
-            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
+            if (flipFacing)
+            {
+                pose.mulPose(Axis.YP.rotationDegrees(180f));
+            }
+            // Yaw flip swaps local ±Z, so lean the other way to keep tipping into the wall.
+            pose.mulPose(Axis.XP.rotationDegrees(flipFacing ? LEAN_ANGLE : -LEAN_ANGLE));
             if (flatSprite)
             {
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));

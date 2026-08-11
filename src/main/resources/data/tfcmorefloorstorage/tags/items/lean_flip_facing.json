@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#tfc:knives",
+      "required": false
+    },
+    {
+      "id": "#tfc:chisels",
+      "required": false
+    },
+    {
+      "id": "#tfc:tuyeres",
+      "required": false
+    },
+    {
+      "id": "#tfc:saws",
+      "required": false
+    }
+  ]
+}
