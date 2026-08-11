@@ -14,17 +14,21 @@ import net.minecraft.world.level.Level;
 /**
  * Stands each leaned tool on the floor and tips it into the wall.
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
+ * Wall face is at {@code z = -0.5}; the foot stays room-side so the leaned head rests on that face
+ * instead of punching through into the wall block.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    private static final float LEAN_ANGLE = 18f;
+    private static final float LEAN_ANGLE = 16f;
     private static final float SLOT_SPACING = 0.2f;
-    /** Toward the wall; wall face is at local z = -0.5. */
-    private static final float WALL_OFFSET = -0.32f;
+    /**
+     * Foot position toward the wall from block centre. Kept shallow so after lean the head
+     * meets the wall at z≈-0.5 rather than clipping through it.
+     */
+    private static final float WALL_OFFSET = -0.10f;
     private static final float FOOT_Y = 0.02f;
-    private static final float MODEL_LIFT = 0.38f;
-    private static final float SCALE = 0.78f;
-    /** Flat sprites are drawn corner-to-corner; clockwise quarter-turn stands the tool upright. */
+    private static final float MODEL_LIFT = 0.36f;
+    private static final float SCALE = 0.75f;
     private static final float UPRIGHT_TURN = -45f;
 
     @Override
@@ -58,14 +62,14 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
+            // Foot on the floor, room-side of the wall face
             pose.translate(lateral, FOOT_Y, WALL_OFFSET);
-            // Tip into the wall while axes still match the room frame
             pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flatSprite)
             {
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
-                // Match hand/inventory facing (scythe blade left, not mirrored right)
-                pose.scale(-1f, 1f, 1f);
+                // Yaw flip matches hand/inventory facing without negative-scale glitches
+                pose.mulPose(Axis.YP.rotationDegrees(180f));
             }
             pose.translate(0f, MODEL_LIFT, 0f);
             pose.scale(SCALE, SCALE, SCALE);
