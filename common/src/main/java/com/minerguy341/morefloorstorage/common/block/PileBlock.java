@@ -388,7 +388,7 @@ public class PileBlock extends Block implements EntityBlock
         }
 
         // This pile is no longer full, so anything the merged pyramid was holding up has to be rechecked
-        updateSupportedPiles(level, topPos);
+        updateDependentPiles(level, topPos);
 
         final SoundType sound = topState.getSoundType();
         level.playSound(null, topPos, sound.getBreakSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 4f, sound.getPitch() * 0.8f);
@@ -515,25 +515,39 @@ public class PileBlock extends Block implements EntityBlock
     }
 
     /**
-     * Rechecks every pile that might have been resting on this one. A pile above is supported by a whole
-     * two by two, three quarters of which are diagonal neighbours that never get an ordinary block update,
-     * so emptying one pile has to reach up and poke the piles above by hand.
+     * Rechecks every pile whose footing or capacity depends on this one, none of which finds out any
+     * other way.
+     * <p>
+     * The eight around it, because any of them may share a two by two with it, and a group's capacity is
+     * its best-braced member's: break the group up and the three left behind can be holding more than
+     * they can now shape. Only two of those three are neighbours in the sense the game means, and
+     * diagonals never get a block update.
+     * <p>
+     * The nine above, because a pile up there rests on a whole two by two below, and again three
+     * quarters of it is diagonal.
      */
-    private void updateSupportedPiles(Level level, BlockPos pos)
+    private static void updateDependentPiles(Level level, BlockPos pos)
     {
-        final BlockPos above = pos.above();
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dz = -1; dz <= 1; dz++)
             {
-                final BlockPos target = above.offset(dx, 0, dz);
-                // Any kind of pile may rest on a merged group, and a scheduled tick only fires if it
-                // names the block actually standing there
-                if (level.getBlockState(target).getBlock() instanceof PileBlock pileAbove)
+                if (dx != 0 || dz != 0)
                 {
-                    level.scheduleTick(target, pileAbove, 1);
+                    schedulePile(level, pos.offset(dx, 0, dz));
                 }
+                schedulePile(level, pos.above().offset(dx, 0, dz));
             }
+        }
+    }
+
+    /** Any kind of pile may rest on a merged group, and a scheduled tick only fires if it names the
+     * block actually standing there, so the block has to be read back rather than assumed. */
+    private static void schedulePile(Level level, BlockPos target)
+    {
+        if (level.getBlockState(target).getBlock() instanceof PileBlock pile)
+        {
+            level.scheduleTick(target, pile, 1);
         }
     }
 
@@ -572,7 +586,7 @@ public class PileBlock extends Block implements EntityBlock
             {
                 level.scheduleTick(pos, this, SPILL_INTERVAL);
             }
-            updateSupportedPiles(level, pos);
+            updateDependentPiles(level, pos);
         }
     }
 
@@ -613,7 +627,7 @@ public class PileBlock extends Block implements EntityBlock
             {
                 pile.removeAll(stack -> popResource(level, pos, stack));
             }
-            updateSupportedPiles(level, pos);
+            updateDependentPiles(level, pos);
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }
