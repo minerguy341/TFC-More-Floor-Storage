@@ -312,6 +312,9 @@ public class PileBlock extends Block implements EntityBlock
         return best;
     }
 
+    /** Supplied rather than passed, because the block and its block entity type register each other. */
+    private final Supplier<BlockEntityType<PileBlockEntity>> blockEntityType;
+
     public PileBlock(Properties properties, Supplier<BlockEntityType<PileBlockEntity>> blockEntityType)
     {
         super(properties);
