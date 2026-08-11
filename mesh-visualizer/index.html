@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TFC Lean Mesh Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./three.module.js",
+      "three/addons/": "./addons/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <h1>TFC Lean Mesh</h1>
+    <p>Hand-edit tool-category lean poses · matches <code>LeaningToolRenderer</code></p>
+    <div class="path" title="Suggested local home">C:\Users\jthue\Documents\AI-Assisted Projects\TFC Mesh visualizer</div>
+  </header>
+
+  <aside id="categories">
+    <h2>Tool categories</h2>
+    <p class="hint">Each category mirrors a tag combo from the mod. Edits apply live to the preview.</p>
+    <div class="cat-list" id="cat-list"></div>
+  </aside>
+
+  <div id="stage-wrap">
+    <canvas id="viewport" tabindex="0"></canvas>
+    <div id="hud">
+      <button class="chip active" data-view="orbit" type="button">Orbit</button>
+      <button class="chip" data-view="side" type="button">Side</button>
+      <button class="chip" data-view="room" type="button">Room</button>
+      <button class="chip" data-view="top" type="button">Top</button>
+      <span class="chip wall-meter" id="wall-meter">wall gap: —</span>
+    </div>
+  </div>
+
+  <section class="panel" id="controls">
+    <h2 id="cat-title">Category</h2>
+    <p class="hint" id="cat-desc"></p>
+
+    <div class="group">
+      <div class="field">
+        <label for="leanAngle">Lean / tilt (XP°, tip into wall)</label>
+        <span class="val" data-for="leanAngle">28</span>
+        <input id="leanAngle" type="range" min="0" max="60" step="0.5" />
+      </div>
+      <div class="field">
+        <label for="wallOffset">Wall offset Z (blocks, −Z → wall)</label>
+        <span class="val" data-for="wallOffset">-0.34</span>
+        <input id="wallOffset" type="range" min="-0.5" max="0.2" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="centerY">Center Y (blocks)</label>
+        <span class="val" data-for="centerY">0.42</span>
+        <input id="centerY" type="range" min="0" max="1" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="scale">Scale</label>
+        <span class="val" data-for="scale">0.72</span>
+        <input id="scale" type="range" min="0.2" max="1.5" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="slotSpacing">Slot spacing</label>
+        <span class="val" data-for="slotSpacing">0.2</span>
+        <input id="slotSpacing" type="range" min="0.05" max="0.45" step="0.01" />
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="field">
+        <label for="uprightTurn">Upright turn (ZP°)</label>
+        <span class="val" data-for="uprightTurn">-45</span>
+        <input id="uprightTurn" type="range" min="-180" max="180" step="1" />
+      </div>
+      <div class="field">
+        <label for="flipFacingTurn">Flip-facing turn (ZP°)</label>
+        <span class="val" data-for="flipFacingTurn">90</span>
+        <input id="flipFacingTurn" type="range" min="-180" max="180" step="1" />
+      </div>
+      <div class="field">
+        <label for="flatSprite">Flat sprite (apply upright turn)</label>
+        <input id="flatSprite" type="checkbox" />
+      </div>
+      <div class="field">
+        <label for="flipFacing">Flip facing (apply flip turn)</label>
+        <input id="flipFacing" type="checkbox" />
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Extra freehand</h2>
+      <div class="field">
+        <label for="extraRotX">Extra rot X°</label>
+        <span class="val" data-for="extraRotX">0</span>
+        <input id="extraRotX" type="range" min="-180" max="180" step="1" />
+      </div>
+      <div class="field">
+        <label for="extraRotY">Extra rot Y°</label>
+        <span class="val" data-for="extraRotY">0</span>
+        <input id="extraRotY" type="range" min="-180" max="180" step="1" />
+      </div>
+      <div class="field">
+        <label for="extraRotZ">Extra rot Z°</label>
+        <span class="val" data-for="extraRotZ">0</span>
+        <input id="extraRotZ" type="range" min="-180" max="180" step="1" />
+      </div>
+      <div class="field">
+        <label for="nudgeX">Nudge X</label>
+        <span class="val" data-for="nudgeX">0</span>
+        <input id="nudgeX" type="range" min="-0.4" max="0.4" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="nudgeY">Nudge Y</label>
+        <span class="val" data-for="nudgeY">0</span>
+        <input id="nudgeY" type="range" min="-0.4" max="0.4" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="nudgeZ">Nudge Z</label>
+        <span class="val" data-for="nudgeZ">0</span>
+        <input id="nudgeZ" type="range" min="-0.4" max="0.4" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="toolLength">Proxy length</label>
+        <span class="val" data-for="toolLength">1</span>
+        <input id="toolLength" type="range" min="0.4" max="1.6" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="toolWidth">Proxy width</label>
+        <span class="val" data-for="toolWidth">0.35</span>
+        <input id="toolWidth" type="range" min="0.1" max="0.8" step="0.01" />
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="field">
+        <label for="showAllSlots">Show all 4 slots</label>
+        <input id="showAllSlots" type="checkbox" checked />
+      </div>
+      <div class="actions">
+        <button class="action" id="btn-reset-cat" type="button">Reset category</button>
+        <button class="action" id="btn-reset-all" type="button">Reset all</button>
+        <button class="action" id="btn-save" type="button">Save JSON</button>
+        <button class="action" id="btn-load" type="button">Load JSON</button>
+        <button class="action primary" id="btn-export-java" type="button">Export Java</button>
+        <button class="action" id="btn-copy" type="button">Copy export</button>
+      </div>
+      <input id="file-input" type="file" accept="application/json,.json" hidden />
+      <textarea id="export-out" readonly spellcheck="false" placeholder="Export appears here…"></textarea>
+      <p class="hint">Wall face = local z −0.5. Gap shown in the HUD = |wallOffset − (−0.5)| after nudges.</p>
+    </div>
+  </section>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
