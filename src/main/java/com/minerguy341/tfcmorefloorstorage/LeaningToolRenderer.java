@@ -15,17 +15,25 @@ import net.minecraft.world.level.Level;
  * Stands each leaned tool on the floor and tips it into the wall.
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
  * <p>
- * Order: upright + face correction first (so yaw doesn't cancel the lean), then tip into the wall.
+ * Lean ({@code XP}) is applied before the upright turn so flat sprites tip into the wall.
+ * A yaw face-flip after leaning reverses that tip and makes tools look vertical.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    private static final float LEAN_ANGLE = 18f;
+    private static final float LEAN_ANGLE = 22f;
     private static final float SLOT_SPACING = 0.2f;
-    /** Foot toward wall; wall face at z = -0.5. */
-    private static final float WALL_OFFSET = -0.22f;
-    private static final float FOOT_Y = 0.02f;
-    private static final float MODEL_LIFT = 0.36f;
-    private static final float SCALE = 0.75f;
+    /** Tool center height; FIXED models are origin-centered. */
+    private static final float CENTER_Y = 0.42f;
+    /**
+     * Toward wall (local {@code -Z}). Wall face is at {@code -0.5}; keep close enough that the
+     * leaned tip meets the block without burying the handle.
+     */
+    private static final float WALL_OFFSET = -0.34f;
+    private static final float SCALE = 0.72f;
+    /**
+     * Flat tool sprites are drawn corner-to-corner; this quarter-turn stands the handle on the floor
+     * with the head up (same as Claude's working lean renderer).
+     */
     private static final float UPRIGHT_TURN = -45f;
 
     @Override
@@ -59,16 +67,13 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
-            pose.translate(lateral, FOOT_Y, WALL_OFFSET);
+            // Foot near wall, then tip into -Z, then stand flat sprites upright in that leaned frame.
+            pose.translate(lateral, CENTER_Y, WALL_OFFSET);
+            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flatSprite)
             {
-                // Stand upright, then spin around the handle to match hand facing.
-                // Must happen BEFORE lean — a yaw after lean flips the tip away from the wall.
                 pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
-                pose.mulPose(Axis.YP.rotationDegrees(180f));
             }
-            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
-            pose.translate(0f, MODEL_LIFT, 0f);
             pose.scale(SCALE, SCALE, SCALE);
 
             Minecraft.getInstance().getItemRenderer().renderStatic(
