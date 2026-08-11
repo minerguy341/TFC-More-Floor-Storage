@@ -10,8 +10,9 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { createExtrudedItemMesh } from "./itemExtrude.js";
 
-const STORAGE_KEY = "tfc-lean-mesh-visualizer-v2";
+const STORAGE_KEY = "tfc-lean-mesh-visualizer-v3";
 const NUMBER_KEYS = [
   "leanAngle",
   "wallOffset",
@@ -28,8 +29,9 @@ const NUMBER_KEYS = [
   "nudgeZ",
   "toolLength",
   "toolWidth",
+  "thicknessScale",
 ];
-const BOOL_KEYS = ["flatSprite", "flipFacing"];
+const BOOL_KEYS = ["flatSprite", "flipFacing", "extrude3d"];
 
 const FACING_YROT = { south: 0, west: 90, north: 180, east: 270 };
 
@@ -75,6 +77,7 @@ const EMBEDDED_DEFAULTS = {
       ],
       flatSprite: true,
       flipFacing: false,
+      extrude3d: true,
       leanAngle: 28,
       wallOffset: -0.34,
       centerY: 0.42,
@@ -90,6 +93,7 @@ const EMBEDDED_DEFAULTS = {
       nudgeZ: 0,
       toolLength: 1,
       toolWidth: 1,
+      thicknessScale: 1,
       color: "#8b7355",
     },
     {
@@ -106,6 +110,7 @@ const EMBEDDED_DEFAULTS = {
       ],
       flatSprite: true,
       flipFacing: false,
+      extrude3d: true,
       leanAngle: 28,
       wallOffset: -0.27,
       centerY: 0.42,
@@ -121,6 +126,7 @@ const EMBEDDED_DEFAULTS = {
       nudgeZ: 0,
       toolLength: 1,
       toolWidth: 1,
+      thicknessScale: 1,
       color: "#6e7f8d",
     },
     {
@@ -137,6 +143,7 @@ const EMBEDDED_DEFAULTS = {
       ],
       flatSprite: true,
       flipFacing: true,
+      extrude3d: true,
       leanAngle: 28,
       wallOffset: -0.27,
       centerY: 0.42,
@@ -152,6 +159,7 @@ const EMBEDDED_DEFAULTS = {
       nudgeZ: 0,
       toolLength: 1,
       toolWidth: 1,
+      thicknessScale: 1,
       color: "#9a7b4f",
     },
     {
@@ -168,6 +176,7 @@ const EMBEDDED_DEFAULTS = {
       ],
       flatSprite: true,
       flipFacing: true,
+      extrude3d: true,
       leanAngle: 28,
       wallOffset: -0.32,
       centerY: 0.42,
@@ -183,6 +192,7 @@ const EMBEDDED_DEFAULTS = {
       nudgeZ: 0,
       toolLength: 1,
       toolWidth: 1,
+      thicknessScale: 1,
       color: "#c4a574",
     },
   ],
@@ -336,8 +346,9 @@ async function buildEnvironment() {
 }
 
 /**
- * Minecraft FIXED flat item: textured card in local XY (face +Z), 1×1 model units.
- * TFC tool sprites are drawn corner-to-corner; uprightTurn (-45 ZP) stands the handle down.
+ * Minecraft FIXED generated item: extruded 3D mesh from the TFC sprite
+ * (ItemModelGenerator-style). Flat plane fallback if extrude3d is off.
+ * Diagonal tool art + uprightTurn (-45 ZP) stands the handle on the floor.
  */
 async function createToolSprite(cat, slot) {
   const root = new THREE.Group();
@@ -347,44 +358,59 @@ async function createToolSprite(cat, slot) {
 
   const w = cat.toolWidth || 1;
   const h = cat.toolLength || 1;
-  const geo = new THREE.PlaneGeometry(w, h);
-  let mat;
-  if (tex) {
-    mat = new THREE.MeshBasicMaterial({
-      map: tex,
-      transparent: true,
-      alphaTest: 0.1,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-  } else {
-    mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(cat.color || "#888888"),
-      roughness: 0.6,
-      metalness: 0.2,
-      side: THREE.DoubleSide,
-    });
+  const thickness = cat.thicknessScale ?? 1;
+  const useExtrude = cat.extrude3d !== false;
+
+  let group;
+  if (useExtrude && tex && path) {
+    try {
+      const mesh = await createExtrudedItemMesh(path, tex, {
+        width: w,
+        height: h,
+        thicknessScale: thickness,
+      });
+      group = new THREE.Group();
+      group.add(mesh);
+    } catch (err) {
+      console.warn("Extrude failed, falling back to flat", path, err);
+      group = null;
+    }
   }
 
-  const sprite = new THREE.Mesh(geo, mat);
-  // Slight thickness cue: duplicate backplane offset
-  const back = new THREE.Mesh(
-    geo,
-    new THREE.MeshBasicMaterial({
-      color: 0x1a1510,
-      transparent: true,
-      opacity: 0.35,
-      side: THREE.FrontSide,
-      depthWrite: false,
-    })
-  );
-  back.position.z = -0.01;
+  if (!group) {
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = tex
+      ? new THREE.MeshStandardMaterial({
+          map: tex,
+          transparent: true,
+          alphaTest: 0.1,
+          side: THREE.DoubleSide,
+          roughness: 0.7,
+          metalness: 0.15,
+        })
+      : new THREE.MeshStandardMaterial({
+          color: new THREE.Color(cat.color || "#888888"),
+          roughness: 0.6,
+          metalness: 0.2,
+          side: THREE.DoubleSide,
+        });
+    const sprite = new THREE.Mesh(geo, mat);
+    const back = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({
+        color: 0x1a1510,
+        transparent: true,
+        opacity: 0.35,
+        side: THREE.FrontSide,
+        depthWrite: false,
+      })
+    );
+    back.position.z = -0.01;
+    group = new THREE.Group();
+    group.add(back);
+    group.add(sprite);
+  }
 
-  const group = new THREE.Group();
-  group.add(back);
-  group.add(sprite);
-
-  // Tiny label under slot for identification in orbit view
   root.add(group);
 
   if (config.globals.showAxes) {
@@ -434,7 +460,9 @@ async function rebuildTools() {
   for (const t of toolRoots) {
     world.remove(t);
     t.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
+      if (o.geometry && !o.userData?.sharedGeometry && !o.geometry.userData?.shared) {
+        o.geometry.dispose();
+      }
       if (o.material) {
         if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
         else o.material.dispose();
@@ -558,7 +586,7 @@ function bindControls() {
       cat[key] = parseFloat(el.value);
       const label = document.querySelector(`.val[data-for="${key}"]`);
       if (label) label.textContent = formatNum(cat[key]);
-      if (key === "toolLength" || key === "toolWidth") rebuildTools();
+      if (key === "toolLength" || key === "toolWidth" || key === "thicknessScale") rebuildTools();
       else {
         refreshPosesOnly();
         persist();
@@ -568,7 +596,8 @@ function bindControls() {
   for (const key of BOOL_KEYS) {
     document.getElementById(key).addEventListener("change", (e) => {
       activeCategory()[key] = e.target.checked;
-      refreshPosesOnly();
+      if (key === "extrude3d") rebuildTools();
+      else refreshPosesOnly();
       persist();
     });
   }

@@ -96,7 +96,11 @@
 
     <div class="group">
       <h2>Sprite size</h2>
-      <p class="hint">Scales the TFC item card (1 = full FIXED size).</p>
+      <p class="hint">Minecraft-style 3D extrusion from the TFC PNG (like in-game FIXED items).</p>
+      <div class="field">
+        <label for="extrude3d">3D extrude (in-game look)</label>
+        <input id="extrude3d" type="checkbox" checked />
+      </div>
       <div class="field">
         <label for="toolLength">Sprite height</label>
         <span class="val" data-for="toolLength">1</span>
@@ -106,6 +110,11 @@
         <label for="toolWidth">Sprite width</label>
         <span class="val" data-for="toolWidth">1</span>
         <input id="toolWidth" type="range" min="0.4" max="1.6" step="0.01" />
+      </div>
+      <div class="field">
+        <label for="thicknessScale">Thickness scale</label>
+        <span class="val" data-for="thicknessScale">1</span>
+        <input id="thicknessScale" type="range" min="0.5" max="4" step="0.1" />
       </div>
     </div>
 

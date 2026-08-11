@@ -57,6 +57,7 @@
       ],
       "flatSprite": true,
       "flipFacing": false,
+      "extrude3d": true,
       "leanAngle": 28,
       "wallOffset": -0.34,
       "centerY": 0.42,
@@ -72,6 +73,7 @@
       "nudgeZ": 0,
       "toolLength": 1,
       "toolWidth": 1,
+      "thicknessScale": 1,
       "color": "#8b7355"
     },
     {
@@ -88,6 +90,7 @@
       ],
       "flatSprite": true,
       "flipFacing": false,
+      "extrude3d": true,
       "leanAngle": 28,
       "wallOffset": -0.27,
       "centerY": 0.42,
@@ -103,6 +106,7 @@
       "nudgeZ": 0,
       "toolLength": 1,
       "toolWidth": 1,
+      "thicknessScale": 1,
       "color": "#6e7f8d"
     },
     {
@@ -119,6 +123,7 @@
       ],
       "flatSprite": true,
       "flipFacing": true,
+      "extrude3d": true,
       "leanAngle": 28,
       "wallOffset": -0.27,
       "centerY": 0.42,
@@ -134,6 +139,7 @@
       "nudgeZ": 0,
       "toolLength": 1,
       "toolWidth": 1,
+      "thicknessScale": 1,
       "color": "#9a7b4f"
     },
     {
@@ -150,6 +156,7 @@
       ],
       "flatSprite": true,
       "flipFacing": true,
+      "extrude3d": true,
       "leanAngle": 28,
       "wallOffset": -0.32,
       "centerY": 0.42,
@@ -165,6 +172,7 @@
       "nudgeZ": 0,
       "toolLength": 1,
       "toolWidth": 1,
+      "thicknessScale": 1,
       "color": "#c4a574"
     }
   ]

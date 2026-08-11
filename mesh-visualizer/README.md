@@ -49,6 +49,8 @@ Categories match the mod tags:
 
 Edits auto-save to browser `localStorage`.
 
+Tools render as **Minecraft-style 3D extruded items** (opaque pixels become a thin slab with rim faces), matching in-game FIXED display — not flat cards. Toggle **3D extrude** or raise **Thickness scale** if you want a clearer silhouette while tuning.
+
 ## Pose order (must stay in sync with Java)
 
 ```
