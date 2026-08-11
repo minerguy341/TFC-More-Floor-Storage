@@ -30,10 +30,10 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
      */
     private static final float WALL_OFFSET = -0.34f;
     /**
-     * Long tip-heavy tools ({@link ModTags#LEAN_CLEAR_WALL}) sit closer to the wall so tips
-     * meet the face (room-side offsets left a large gap).
+     * Long tip-heavy tools ({@link ModTags#LEAN_CLEAR_WALL}): about 1/3 block off the wall face
+     * ({@code -0.5 + 1/3 ≈ -0.17}).
      */
-    private static final float CLEAR_WALL_OFFSET = -0.42f;
+    private static final float CLEAR_WALL_OFFSET = -0.17f;
     private static final float SCALE = 0.72f;
     /**
      * Flat tool sprites are drawn corner-to-corner; this quarter-turn stands the handle on the floor
