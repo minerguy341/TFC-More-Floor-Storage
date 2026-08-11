@@ -1,6 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "source": "LeaningToolRenderer (cursor/tool-leaning-6673)",
+  "assetNotice": "Item/block textures copied from TerraFirmaCraft 1.20.x for private local preview only — do not redistribute.",
   "notes": [
     "Local frame after yaw: -Z points toward the wall. Wall face sits at z = -0.5.",
     "Pose order matches the Java renderer: translate → lean (XP) → flip facing (ZP) → upright (ZP) → scale.",
@@ -9,15 +10,51 @@
   "globals": {
     "slotCount": 4,
     "facing": "north",
-    "showAllSlots": true
+    "showAllSlots": true,
+    "showAxes": false,
+    "wallTexture": "textures/tfc/block/rock/raw/andesite.png",
+    "floorTexture": "textures/tfc/block/rock/raw/granite.png"
   },
+  "textureLibrary": [
+    "textures/tfc/item/metal/axe/wrought_iron.png",
+    "textures/tfc/item/metal/axe/steel.png",
+    "textures/tfc/item/metal/axe/copper.png",
+    "textures/tfc/item/metal/pickaxe/wrought_iron.png",
+    "textures/tfc/item/metal/shovel/wrought_iron.png",
+    "textures/tfc/item/metal/hoe/wrought_iron.png",
+    "textures/tfc/item/metal/hammer/wrought_iron.png",
+    "textures/tfc/item/metal/propick/wrought_iron.png",
+    "textures/tfc/item/metal/scythe/wrought_iron.png",
+    "textures/tfc/item/metal/javelin/wrought_iron.png",
+    "textures/tfc/item/metal/sword/wrought_iron.png",
+    "textures/tfc/item/metal/sword/steel.png",
+    "textures/tfc/item/metal/sword/copper.png",
+    "textures/tfc/item/metal/mace/wrought_iron.png",
+    "textures/tfc/item/metal/fishing_rod/wrought_iron.png",
+    "textures/tfc/item/metal/knife/wrought_iron.png",
+    "textures/tfc/item/metal/knife/steel.png",
+    "textures/tfc/item/metal/knife/copper.png",
+    "textures/tfc/item/metal/chisel/wrought_iron.png",
+    "textures/tfc/item/metal/saw/wrought_iron.png",
+    "textures/tfc/item/metal/saw/steel.png",
+    "textures/tfc/item/metal/saw/copper.png",
+    "textures/tfc/item/metal/tuyere/wrought_iron.png",
+    "textures/tfc/item/spindle.png",
+    "textures/tfc/item/firestarter.png"
+  ],
   "categories": [
     {
       "id": "default",
       "name": "Default tools",
       "description": "Axes, picks, shovels, hoes — stock lean distance.",
-      "examples": ["tfc:metal/axe/wrought_iron", "tfc:metal/pickaxe/wrought_iron", "minecraft:iron_shovel"],
+      "examples": ["tfc:metal/axe/wrought_iron", "tfc:metal/pickaxe/wrought_iron", "tfc:metal/shovel/wrought_iron", "tfc:metal/hoe/wrought_iron"],
       "tags": [],
+      "textures": [
+        "textures/tfc/item/metal/axe/wrought_iron.png",
+        "textures/tfc/item/metal/pickaxe/wrought_iron.png",
+        "textures/tfc/item/metal/shovel/wrought_iron.png",
+        "textures/tfc/item/metal/hoe/wrought_iron.png"
+      ],
       "flatSprite": true,
       "flipFacing": false,
       "leanAngle": 28,
@@ -33,16 +70,22 @@
       "nudgeX": 0,
       "nudgeY": 0,
       "nudgeZ": 0,
-      "toolLength": 1.0,
-      "toolWidth": 0.35,
+      "toolLength": 1,
+      "toolWidth": 1,
       "color": "#8b7355"
     },
     {
       "id": "clear_wall",
       "name": "Clear wall (long tools)",
       "description": "Swords, maces, rods, spindle, firestarter — seated farther from the wall face.",
-      "examples": ["tfc:metal/sword/wrought_iron", "tfc:metal/mace/wrought_iron", "tfc:spindle", "tfc:firestarter", "minecraft:fishing_rod"],
+      "examples": ["tfc:metal/sword/wrought_iron", "tfc:metal/mace/wrought_iron", "tfc:spindle", "tfc:firestarter"],
       "tags": ["lean_clear_wall"],
+      "textures": [
+        "textures/tfc/item/metal/sword/wrought_iron.png",
+        "textures/tfc/item/metal/mace/wrought_iron.png",
+        "textures/tfc/item/spindle.png",
+        "textures/tfc/item/firestarter.png"
+      ],
       "flatSprite": true,
       "flipFacing": false,
       "leanAngle": 28,
@@ -58,8 +101,8 @@
       "nudgeX": 0,
       "nudgeY": 0,
       "nudgeZ": 0,
-      "toolLength": 1.15,
-      "toolWidth": 0.28,
+      "toolLength": 1,
+      "toolWidth": 1,
       "color": "#6e7f8d"
     },
     {
@@ -68,6 +111,12 @@
       "description": "Saws & chisels — 90° CW after lean, clear-wall offset.",
       "examples": ["tfc:metal/saw/wrought_iron", "tfc:metal/chisel/wrought_iron"],
       "tags": ["lean_clear_wall", "lean_flip_facing"],
+      "textures": [
+        "textures/tfc/item/metal/saw/wrought_iron.png",
+        "textures/tfc/item/metal/chisel/wrought_iron.png",
+        "textures/tfc/item/metal/saw/steel.png",
+        "textures/tfc/item/metal/chisel/wrought_iron.png"
+      ],
       "flatSprite": true,
       "flipFacing": true,
       "leanAngle": 28,
@@ -83,8 +132,8 @@
       "nudgeX": 0,
       "nudgeY": 0,
       "nudgeZ": 0,
-      "toolLength": 1.05,
-      "toolWidth": 0.32,
+      "toolLength": 1,
+      "toolWidth": 1,
       "color": "#9a7b4f"
     },
     {
@@ -93,6 +142,12 @@
       "description": "Knives & tuyeres — flip facing, 0.05 closer than clear-wall.",
       "examples": ["tfc:metal/knife/wrought_iron", "tfc:metal/tuyere/wrought_iron"],
       "tags": ["lean_clear_wall", "lean_closer_wall", "lean_flip_facing"],
+      "textures": [
+        "textures/tfc/item/metal/knife/wrought_iron.png",
+        "textures/tfc/item/metal/tuyere/wrought_iron.png",
+        "textures/tfc/item/metal/knife/steel.png",
+        "textures/tfc/item/metal/knife/copper.png"
+      ],
       "flatSprite": true,
       "flipFacing": true,
       "leanAngle": 28,
@@ -108,8 +163,8 @@
       "nudgeX": 0,
       "nudgeY": 0,
       "nudgeZ": 0,
-      "toolLength": 0.85,
-      "toolWidth": 0.3,
+      "toolLength": 1,
+      "toolWidth": 1,
       "color": "#c4a574"
     }
   ]

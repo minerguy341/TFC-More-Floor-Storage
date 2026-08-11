@@ -8,6 +8,10 @@ Suggested home on your machine:
 
 Copy this whole `mesh-visualizer` folder there (or clone the branch and keep working from a copy). The editor is standalone — it does not need Minecraft running.
 
+## Assets
+
+`textures/tfc/` contains **TerraFirmaCraft** item/block sprites (from the `1.20.x` GitHub tree) for private local preview. See `NOTICE.txt` — **do not redistribute** this folder.
+
 ## Run
 
 ES modules need a tiny static server:

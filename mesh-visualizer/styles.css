@@ -198,6 +198,47 @@ h2 {
   vertical-align: middle;
 }
 
+.cat-thumb {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+  margin-right: 0.45rem;
+  vertical-align: middle;
+  background: #0d0b09;
+  border: 1px solid var(--line);
+}
+
+.tex-row {
+  display: grid;
+  grid-template-columns: 32px auto 1fr;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.tex-row label {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.tex-preview {
+  image-rendering: pixelated;
+  background: #0d0b09;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.tex-row select {
+  width: 100%;
+  background: var(--bg2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+}
+
 .field {
   display: grid;
   grid-template-columns: 1fr auto;
