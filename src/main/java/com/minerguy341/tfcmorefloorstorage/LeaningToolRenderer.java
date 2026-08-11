@@ -14,24 +14,24 @@ import net.minecraft.world.level.Level;
 /**
  * Stands each leaned tool on the floor and tips it into the wall.
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
+ * <p>
+ * Transform order matters: lean in the wall frame first, then stand the flat sprite upright,
+ * so tools tip into the wall instead of rolling sideways.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
     /** Degrees off vertical, tipping the head toward the wall. */
-    private static final float LEAN_ANGLE = 22f;
+    private static final float LEAN_ANGLE = 18f;
     /** Lateral spacing between neighbouring tools. */
     private static final float SLOT_SPACING = 0.2f;
-    /** How far from block centre toward the wall (wall is at local z = -0.5). */
-    private static final float WALL_OFFSET = -0.40f;
-    /** Pivot height above the floor (near the handle butt). */
-    private static final float FOOT_Y = 0.04f;
-    /** Raise the FIXED item model so the handle sits on the pivot / ground. */
-    private static final float MODEL_LIFT = 0.42f;
+    /** Toward the wall; wall face is at local z = -0.5. */
+    private static final float WALL_OFFSET = -0.34f;
+    /** Pivot height above the floor (handle butt). */
+    private static final float FOOT_Y = 0.02f;
+    /** Raise FIXED item so the handle rests on the pivot. */
+    private static final float MODEL_LIFT = 0.38f;
     private static final float SCALE = 0.78f;
-    /**
-     * Flat sprites are drawn corner-to-corner; this quarter-turn stands the tool upright
-     * before the lean is applied.
-     */
+    /** Flat sprites are drawn corner-to-corner; quarter-turn stands the tool upright. */
     private static final float UPRIGHT_TURN = -45f;
 
     @Override
@@ -65,15 +65,16 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.translate(0.5f, 0f, 0.5f);
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
-            // Foot near the floor, close to the wall; lean tips the head into the wall
+            // Foot on the floor, near the wall
             pose.translate(lateral, FOOT_Y, WALL_OFFSET);
+            // Tip into the wall while axes still match the room frame
+            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flatSprite)
             {
-                // Stand the diagonal sprite upright, then yaw 180 so it isn't mirrored
-                pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
+                // Face the room, then stand the diagonal sprite upright
                 pose.mulPose(Axis.YP.rotationDegrees(180f));
+                pose.mulPose(Axis.ZP.rotationDegrees(UPRIGHT_TURN));
             }
-            pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             pose.translate(0f, MODEL_LIFT, 0f);
             pose.scale(SCALE, SCALE, SCALE);
 
