@@ -19,11 +19,20 @@ public final class ModTags
     );
 
     /**
-     * Flat sprites that need a 90° clockwise turn before leaning (knives, chisels, tuyeres, saws).
+     * Flat sprites that need a 90° clockwise turn after leaning (knives, chisels, tuyeres, saws).
      */
     public static final TagKey<Item> LEAN_FLIP_FACING = TagKey.create(
         Registries.ITEM,
         new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "lean_flip_facing")
+    );
+
+    /**
+     * Longer / tip-heavy sprites that clip into the wall at the default offset; pulled back so
+     * the tip meets the face (knives, chisels, tuyeres, saws, swords, maces, rods, spindle, firestarter).
+     */
+    public static final TagKey<Item> LEAN_CLEAR_WALL = TagKey.create(
+        Registries.ITEM,
+        new ResourceLocation(TFCMoreFloorStorage.MOD_ID, "lean_clear_wall")
     );
 
     private ModTags() {}

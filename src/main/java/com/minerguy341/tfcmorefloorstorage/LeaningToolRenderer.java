@@ -26,10 +26,14 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
     /** Tool center height; FIXED models are origin-centered. */
     private static final float CENTER_Y = 0.42f;
     /**
-     * Toward wall (local {@code -Z}). Wall face is at {@code -0.5}; keep close enough that the
-     * leaned tip meets the block without burying the handle.
+     * Toward wall (local {@code -Z}). Wall face is at {@code -0.5}.
      */
     private static final float WALL_OFFSET = -0.34f;
+    /**
+     * Extra pull-back for long tip-heavy tools ({@link ModTags#LEAN_CLEAR_WALL}) so tips rest on
+     * the face instead of clipping inside the block.
+     */
+    private static final float CLEAR_WALL_OFFSET = -0.18f;
     private static final float SCALE = 0.72f;
     /**
      * Flat tool sprites are drawn corner-to-corner; this quarter-turn stands the handle on the floor
@@ -66,6 +70,7 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             final BakedModel model = Minecraft.getInstance().getItemRenderer().getModel(stack, level, null, seed);
             final boolean flatSprite = !model.isGui3d();
             final boolean flipFacing = stack.is(ModTags.LEAN_FLIP_FACING);
+            final float wallOffset = stack.is(ModTags.LEAN_CLEAR_WALL) ? CLEAR_WALL_OFFSET : WALL_OFFSET;
             final float lateral = large
                 ? 0f
                 : (slot - (LeaningToolBlock.SLOTS - 1) / 2f) * SLOT_SPACING;
@@ -75,7 +80,7 @@ public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlock
             pose.mulPose(Axis.YP.rotationDegrees(180f - facing.toYRot()));
 
             // Foot near wall → tip into -Z → then facing/upright spins in the leaned frame.
-            pose.translate(lateral, CENTER_Y, WALL_OFFSET);
+            pose.translate(lateral, CENTER_Y, wallOffset);
             pose.mulPose(Axis.XP.rotationDegrees(-LEAN_ANGLE));
             if (flipFacing)
             {
