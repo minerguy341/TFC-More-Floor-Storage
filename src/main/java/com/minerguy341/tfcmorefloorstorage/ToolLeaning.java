@@ -9,12 +9,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Vintage Story style tool leaning, with TFC placed-item size capacity rules.
@@ -38,8 +40,10 @@ public final class ToolLeaning
             return false;
         }
 
-        final HitResult ray = player.pick(ToolLeaningConfig.INTERACTION_RANGE.get().floatValue(), 1.0f, false);
-        if (!(ray instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+        // Collision clip (not outline): leaning tools have no collision, so the ray reaches the
+        // wall behind them. Outline pick was eating adjacent-column aims into the existing lean.
+        final BlockHitResult hit = clipThroughLeans(player, ToolLeaningConfig.INTERACTION_RANGE.get().floatValue());
+        if (hit.getType() != HitResult.Type.BLOCK)
         {
             return false;
         }
@@ -48,11 +52,6 @@ public final class ToolLeaning
         final BlockPos hitPos = hit.getBlockPos();
         final BlockState hitState = level.getBlockState(hitPos);
         final LeaningToolBlock leaningBlock = ModBlocks.LEANING_TOOL.get();
-
-        if (hitState.is(leaningBlock))
-        {
-            return insert(level, hitPos, player, held, LeaningToolBlock.slotFromHit(hitState, hitPos, hit.getLocation()));
-        }
 
         final Direction face = hit.getDirection();
         if (face.getAxis().isVertical() || !hitState.isFaceSturdy(level, hitPos, face))
@@ -93,6 +92,17 @@ public final class ToolLeaning
     {
         final Size size = ItemSizeManager.get(stack).getSize(stack);
         return size.isEqualOrSmallerThan(TFCConfig.SERVER.maxPlacedLargeItemSize.get());
+    }
+
+    /**
+     * Block pick that ignores leaning-tool outlines so placement follows the wall face you aim at.
+     */
+    private static BlockHitResult clipThroughLeans(Player player, float range)
+    {
+        final Vec3 eye = player.getEyePosition(1.0f);
+        final Vec3 look = player.getViewVector(1.0f);
+        final Vec3 end = eye.add(look.x * range, look.y * range, look.z * range);
+        return player.level().clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
     }
 
     private static boolean insert(Level level, BlockPos pos, Player player, ItemStack held, int preferredSlot)

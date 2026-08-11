@@ -15,7 +15,7 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * Presses TFC's floor storage key (V by default) while holding a leanable tool to lean it on a wall.
- * Ported from Claude's {@code MFSKeyHandler} lean path (pickup path not included here).
+ * Client only gates the key; the server collision-clips through existing leans to the aimed wall face.
  */
 @Mod.EventBusSubscriber(modid = TFCMoreFloorStorage.MOD_ID, value = Dist.CLIENT)
 public final class ToolLeanKeyHandler

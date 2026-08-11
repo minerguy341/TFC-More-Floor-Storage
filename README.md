@@ -29,7 +29,8 @@ Aim at the **side of a solid block** with a leanable tool and press TFC’s floo
 - **Capacity** matches TFC ground placed items (`tfc-server.toml`):
   - size ≤ `maxPlacedItemSize` (default Large) → up to **4** tools on one block
   - larger, up to `maxPlacedLargeItemSize` → **1** tool alone
-- Aim at an existing leaning-tools block (or the same wall cell) to fill extra slots; a neighbouring wall column starts a new block
+- Aim at a wall cell to lean there; neighbouring columns are separate blocks (placement clips through existing leans to the wall)
+- Aim at the same wall cell again to fill extra slots (up to capacity)
 - Toggle / range: `config/tfcmorefloorstorage-server.toml`
 
 ## Metal ingot mesh (optional)
