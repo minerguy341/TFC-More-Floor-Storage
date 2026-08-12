@@ -21,25 +21,22 @@ ES modules need a tiny static server:
 
 Then open `http://127.0.0.1:8765/`.
 
-## What you can edit (per category)
+## What you can edit (per tool type)
+
+Each tool type (axe, knife, saw, …) has **one material** and its own pose config:
 
 | Control | Maps to renderer |
 |---|---|
 | Lean / tilt | `LEAN_ANGLE` via `Axis.XP` |
-| Wall offset Z | `WALL_OFFSET` / `CLEAR_WALL_OFFSET` / `CLOSER_WALL_OFFSET` |
+| Wall offset Z | per-type / tag wall offsets |
 | Center Y | `CENTER_Y` |
 | Scale | `SCALE` |
 | Upright turn | `UPRIGHT_TURN` (flat FIXED sprites) |
-| Flip-facing turn | `FLIP_FACING_TURN` (`lean_flip_facing` tag) |
-| Slot spacing | `SLOT_SPACING` |
-| Extra rot / nudge | freehand — export as comments until wired into Java |
+| Flip-facing turn | `FLIP_FACING_TURN` |
+| Slot spacing | `SLOT_SPACING` (when previewing 4 of the same tool) |
+| Extra rot / nudge | freehand |
 
-Categories match the mod tags:
-
-- **Default** — axes / picks / shovels / hoes
-- **Clear wall** — swords, maces, rods, spindle, firestarter
-- **Flip facing** — saws, chisels
-- **Closer wall** — knives, tuyeres
+Grouped by lean behavior: **Default** · **Clear wall** · **Flip facing** · **Closer wall**.
 
 ## Export back into the mod
 

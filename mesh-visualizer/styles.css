@@ -208,12 +208,40 @@ h2 {
   border: 1px solid var(--line);
 }
 
+.group-header {
+  margin: 0.75rem 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.group-header:first-child {
+  margin-top: 0.15rem;
+}
+
 .tex-row {
   display: grid;
   grid-template-columns: 32px auto 1fr;
   gap: 0.45rem;
   align-items: center;
   margin-bottom: 0.45rem;
+}
+
+.tex-row.single {
+  grid-template-columns: 32px 1fr;
+}
+
+.tex-path.mono,
+.mono {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tex-row label {

@@ -20,13 +20,13 @@
 <body>
   <header>
     <h1>TFC Lean Mesh</h1>
-    <p>Hand-edit tool-category lean poses · matches <code>LeaningToolRenderer</code></p>
+    <p>Hand-edit per tool-type lean poses · matches <code>LeaningToolRenderer</code></p>
     <div class="path" title="Suggested local home">C:\Users\jthue\Documents\AI-Assisted Projects\TFC Mesh visualizer</div>
   </header>
 
   <aside id="categories">
-    <h2>Tool categories</h2>
-    <p class="hint">Each category mirrors a tag combo from the mod. Edits apply live to the preview.</p>
+    <h2>Tool types</h2>
+    <p class="hint">One wrought-iron (or single) material per type, with its own pose config.</p>
     <div class="cat-list" id="cat-list"></div>
   </aside>
 
@@ -42,8 +42,17 @@
   </div>
 
   <section class="panel" id="controls">
-    <h2 id="cat-title">Category</h2>
+    <h2 id="cat-title">Tool type</h2>
     <p class="hint" id="cat-desc"></p>
+
+    <div class="group" id="texture-picker">
+      <h2>Material</h2>
+      <p class="hint">Fixed to one TFC sprite per tool type (private local assets).</p>
+      <div class="tex-row single">
+        <img class="tex-preview" src="" alt="" width="32" height="32" />
+        <span class="tex-path mono">—</span>
+      </div>
+    </div>
 
     <div class="group">
       <div class="field">
@@ -153,19 +162,17 @@
     </div>
 
     <div class="group">
-      <h2>Slot textures (TFC)</h2>
-      <p class="hint">Private local TFC item sprites — see NOTICE.txt. Pick per slot.</p>
-      <div id="slot-textures"></div>
+      <h2>Preview</h2>
       <div class="field">
-        <label for="showAllSlots">Show all 4 slots</label>
-        <input id="showAllSlots" type="checkbox" checked />
+        <label for="showAllSlots">Show 4 slots (same tool)</label>
+        <input id="showAllSlots" type="checkbox" />
       </div>
       <div class="field">
         <label for="showAxes">Show local axes</label>
         <input id="showAxes" type="checkbox" />
       </div>
       <div class="actions">
-        <button class="action" id="btn-reset-cat" type="button">Reset category</button>
+        <button class="action" id="btn-reset-cat" type="button">Reset type</button>
         <button class="action" id="btn-reset-all" type="button">Reset all</button>
         <button class="action" id="btn-save" type="button">Save JSON</button>
         <button class="action" id="btn-load" type="button">Load JSON</button>

@@ -1,201 +1,527 @@
 /**
  * TFC Lean Mesh Visualizer
- * Pose math mirrors LeaningToolRenderer from TFC-More-Floor-Storage.
- *
- * Local frame after yaw: -Z toward wall. Wall face at z = -0.5.
- * Order: translate(lateral, centerY, wallOffset) → XP(-lean) → ZP(flip?) → ZP(upright?) → extras → scale
- *
- * Item sprites: TerraFirmaCraft textures (private local use — see NOTICE.txt).
+ * Pose math mirrors LeaningToolRenderer.
+ * One material + per-type pose config for each tool type.
  */
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createExtrudedItemMesh } from "./itemExtrude.js";
 
-const STORAGE_KEY = "tfc-lean-mesh-visualizer-v3";
+const STORAGE_KEY = "tfc-lean-mesh-visualizer-v4";
 const NUMBER_KEYS = [
-  "leanAngle",
-  "wallOffset",
-  "centerY",
-  "scale",
-  "uprightTurn",
-  "flipFacingTurn",
-  "slotSpacing",
-  "extraRotX",
-  "extraRotY",
-  "extraRotZ",
-  "nudgeX",
-  "nudgeY",
-  "nudgeZ",
-  "toolLength",
-  "toolWidth",
-  "thicknessScale",
+  "leanAngle", "wallOffset", "centerY", "scale", "uprightTurn", "flipFacingTurn",
+  "slotSpacing", "extraRotX", "extraRotY", "extraRotZ", "nudgeX", "nudgeY", "nudgeZ",
+  "toolLength", "toolWidth", "thicknessScale",
 ];
 const BOOL_KEYS = ["flatSprite", "flipFacing", "extrude3d"];
 
+const GROUP_LABELS = {
+  default: "Default lean",
+  clear_wall: "Clear wall",
+  flip_facing: "Flip facing",
+  closer_wall: "Closer wall",
+};
+
 const FACING_YROT = { south: 0, west: 90, north: 180, east: 270 };
 
-/** Fallback when defaults.json cannot be fetched. */
 const EMBEDDED_DEFAULTS = {
-  version: 2,
-  source: "LeaningToolRenderer (cursor/tool-leaning-6673)",
-  assetNotice: "TFC textures for private local preview only — do not redistribute.",
-  globals: {
-    slotCount: 4,
-    facing: "north",
-    showAllSlots: true,
-    showAxes: false,
-    wallTexture: "textures/tfc/block/rock/raw/andesite.png",
-    floorTexture: "textures/tfc/block/rock/raw/granite.png",
+  "version": 3,
+  "source": "LeaningToolRenderer (cursor/tool-leaning-6673)",
+  "assetNotice": "Item/block textures copied from TerraFirmaCraft 1.20.x for private local preview only \u2014 do not redistribute.",
+  "globals": {
+    "slotCount": 4,
+    "facing": "north",
+    "showAllSlots": false,
+    "showAxes": false,
+    "wallTexture": "textures/tfc/block/rock/raw/andesite.png",
+    "floorTexture": "textures/tfc/block/rock/raw/granite.png"
   },
-  textureLibrary: [
-    "textures/tfc/item/metal/axe/wrought_iron.png",
-    "textures/tfc/item/metal/pickaxe/wrought_iron.png",
-    "textures/tfc/item/metal/shovel/wrought_iron.png",
-    "textures/tfc/item/metal/hoe/wrought_iron.png",
-    "textures/tfc/item/metal/sword/wrought_iron.png",
-    "textures/tfc/item/metal/mace/wrought_iron.png",
-    "textures/tfc/item/metal/knife/wrought_iron.png",
-    "textures/tfc/item/metal/chisel/wrought_iron.png",
-    "textures/tfc/item/metal/saw/wrought_iron.png",
-    "textures/tfc/item/metal/tuyere/wrought_iron.png",
-    "textures/tfc/item/spindle.png",
-    "textures/tfc/item/firestarter.png",
-  ],
-  categories: [
+  "toolTypes": [
     {
-      id: "default",
-      name: "Default tools",
-      description: "Axes, picks, shovels, hoes — stock lean distance.",
-      examples: [],
-      tags: [],
-      textures: [
-        "textures/tfc/item/metal/axe/wrought_iron.png",
-        "textures/tfc/item/metal/pickaxe/wrought_iron.png",
-        "textures/tfc/item/metal/shovel/wrought_iron.png",
-        "textures/tfc/item/metal/hoe/wrought_iron.png",
-      ],
-      flatSprite: true,
-      flipFacing: false,
-      extrude3d: true,
-      leanAngle: 28,
-      wallOffset: -0.34,
-      centerY: 0.42,
-      scale: 0.72,
-      uprightTurn: -45,
-      flipFacingTurn: 90,
-      slotSpacing: 0.2,
-      extraRotX: 0,
-      extraRotY: 0,
-      extraRotZ: 0,
-      nudgeX: 0,
-      nudgeY: 0,
-      nudgeZ: 0,
-      toolLength: 1,
-      toolWidth: 1,
-      thicknessScale: 1,
-      color: "#8b7355",
+      "id": "axe",
+      "name": "Axe",
+      "group": "default",
+      "itemId": "tfc:metal/axe/wrought_iron",
+      "texture": "textures/tfc/item/metal/axe/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
     },
     {
-      id: "clear_wall",
-      name: "Clear wall (long tools)",
-      description: "Swords, maces, spindle, firestarter.",
-      examples: [],
-      tags: ["lean_clear_wall"],
-      textures: [
-        "textures/tfc/item/metal/sword/wrought_iron.png",
-        "textures/tfc/item/metal/mace/wrought_iron.png",
-        "textures/tfc/item/spindle.png",
-        "textures/tfc/item/firestarter.png",
-      ],
-      flatSprite: true,
-      flipFacing: false,
-      extrude3d: true,
-      leanAngle: 28,
-      wallOffset: -0.27,
-      centerY: 0.42,
-      scale: 0.72,
-      uprightTurn: -45,
-      flipFacingTurn: 90,
-      slotSpacing: 0.2,
-      extraRotX: 0,
-      extraRotY: 0,
-      extraRotZ: 0,
-      nudgeX: 0,
-      nudgeY: 0,
-      nudgeZ: 0,
-      toolLength: 1,
-      toolWidth: 1,
-      thicknessScale: 1,
-      color: "#6e7f8d",
+      "id": "pickaxe",
+      "name": "Pickaxe",
+      "group": "default",
+      "itemId": "tfc:metal/pickaxe/wrought_iron",
+      "texture": "textures/tfc/item/metal/pickaxe/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
     },
     {
-      id: "flip_facing",
-      name: "Flip facing (saw / chisel)",
-      description: "Saws & chisels — 90° CW after lean.",
-      examples: [],
-      tags: ["lean_clear_wall", "lean_flip_facing"],
-      textures: [
-        "textures/tfc/item/metal/saw/wrought_iron.png",
-        "textures/tfc/item/metal/chisel/wrought_iron.png",
-        "textures/tfc/item/metal/saw/steel.png",
-        "textures/tfc/item/metal/chisel/wrought_iron.png",
-      ],
-      flatSprite: true,
-      flipFacing: true,
-      extrude3d: true,
-      leanAngle: 28,
-      wallOffset: -0.27,
-      centerY: 0.42,
-      scale: 0.72,
-      uprightTurn: -45,
-      flipFacingTurn: 90,
-      slotSpacing: 0.2,
-      extraRotX: 0,
-      extraRotY: 0,
-      extraRotZ: 0,
-      nudgeX: 0,
-      nudgeY: 0,
-      nudgeZ: 0,
-      toolLength: 1,
-      toolWidth: 1,
-      thicknessScale: 1,
-      color: "#9a7b4f",
+      "id": "shovel",
+      "name": "Shovel",
+      "group": "default",
+      "itemId": "tfc:metal/shovel/wrought_iron",
+      "texture": "textures/tfc/item/metal/shovel/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
     },
     {
-      id: "closer_wall",
-      name: "Closer wall (knife / tuyere)",
-      description: "Knives & tuyeres — closer wall offset + flip.",
-      examples: [],
-      tags: ["lean_clear_wall", "lean_closer_wall", "lean_flip_facing"],
-      textures: [
-        "textures/tfc/item/metal/knife/wrought_iron.png",
-        "textures/tfc/item/metal/tuyere/wrought_iron.png",
-        "textures/tfc/item/metal/knife/steel.png",
-        "textures/tfc/item/metal/knife/copper.png",
-      ],
-      flatSprite: true,
-      flipFacing: true,
-      extrude3d: true,
-      leanAngle: 28,
-      wallOffset: -0.32,
-      centerY: 0.42,
-      scale: 0.72,
-      uprightTurn: -45,
-      flipFacingTurn: 90,
-      slotSpacing: 0.2,
-      extraRotX: 0,
-      extraRotY: 0,
-      extraRotZ: 0,
-      nudgeX: 0,
-      nudgeY: 0,
-      nudgeZ: 0,
-      toolLength: 1,
-      toolWidth: 1,
-      thicknessScale: 1,
-      color: "#c4a574",
+      "id": "hoe",
+      "name": "Hoe",
+      "group": "default",
+      "itemId": "tfc:metal/hoe/wrought_iron",
+      "texture": "textures/tfc/item/metal/hoe/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
     },
-  ],
+    {
+      "id": "hammer",
+      "name": "Hammer",
+      "group": "default",
+      "itemId": "tfc:metal/hammer/wrought_iron",
+      "texture": "textures/tfc/item/metal/hammer/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "propick",
+      "name": "Propick",
+      "group": "default",
+      "itemId": "tfc:metal/propick/wrought_iron",
+      "texture": "textures/tfc/item/metal/propick/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "scythe",
+      "name": "Scythe",
+      "group": "default",
+      "itemId": "tfc:metal/scythe/wrought_iron",
+      "texture": "textures/tfc/item/metal/scythe/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "javelin",
+      "name": "Javelin",
+      "group": "default",
+      "itemId": "tfc:metal/javelin/wrought_iron",
+      "texture": "textures/tfc/item/metal/javelin/wrought_iron.png",
+      "tags": [],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.34,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "sword",
+      "name": "Sword",
+      "group": "clear_wall",
+      "itemId": "tfc:metal/sword/wrought_iron",
+      "texture": "textures/tfc/item/metal/sword/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall"
+      ],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "mace",
+      "name": "Mace",
+      "group": "clear_wall",
+      "itemId": "tfc:metal/mace/wrought_iron",
+      "texture": "textures/tfc/item/metal/mace/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall"
+      ],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "fishing_rod",
+      "name": "Fishing rod",
+      "group": "clear_wall",
+      "itemId": "tfc:metal/fishing_rod/wrought_iron",
+      "texture": "textures/tfc/item/metal/fishing_rod/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall"
+      ],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "spindle",
+      "name": "Spindle",
+      "group": "clear_wall",
+      "itemId": "tfc:spindle",
+      "texture": "textures/tfc/item/spindle.png",
+      "tags": [
+        "lean_clear_wall"
+      ],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "firestarter",
+      "name": "Firestarter",
+      "group": "clear_wall",
+      "itemId": "tfc:firestarter",
+      "texture": "textures/tfc/item/firestarter.png",
+      "tags": [
+        "lean_clear_wall"
+      ],
+      "flatSprite": true,
+      "flipFacing": false,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "saw",
+      "name": "Saw",
+      "group": "flip_facing",
+      "itemId": "tfc:metal/saw/wrought_iron",
+      "texture": "textures/tfc/item/metal/saw/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall",
+        "lean_flip_facing"
+      ],
+      "flatSprite": true,
+      "flipFacing": true,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "chisel",
+      "name": "Chisel",
+      "group": "flip_facing",
+      "itemId": "tfc:metal/chisel/wrought_iron",
+      "texture": "textures/tfc/item/metal/chisel/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall",
+        "lean_flip_facing"
+      ],
+      "flatSprite": true,
+      "flipFacing": true,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.27,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "knife",
+      "name": "Knife",
+      "group": "closer_wall",
+      "itemId": "tfc:metal/knife/wrought_iron",
+      "texture": "textures/tfc/item/metal/knife/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall",
+        "lean_closer_wall",
+        "lean_flip_facing"
+      ],
+      "flatSprite": true,
+      "flipFacing": true,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.32,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    },
+    {
+      "id": "tuyere",
+      "name": "Tuyere",
+      "group": "closer_wall",
+      "itemId": "tfc:metal/tuyere/wrought_iron",
+      "texture": "textures/tfc/item/metal/tuyere/wrought_iron.png",
+      "tags": [
+        "lean_clear_wall",
+        "lean_closer_wall",
+        "lean_flip_facing"
+      ],
+      "flatSprite": true,
+      "flipFacing": true,
+      "extrude3d": true,
+      "leanAngle": 28,
+      "wallOffset": -0.32,
+      "centerY": 0.42,
+      "scale": 0.72,
+      "uprightTurn": -45,
+      "flipFacingTurn": 90,
+      "slotSpacing": 0.2,
+      "extraRotX": 0,
+      "extraRotY": 0,
+      "extraRotZ": 0,
+      "nudgeX": 0,
+      "nudgeY": 0,
+      "nudgeZ": 0,
+      "toolLength": 1,
+      "toolWidth": 1,
+      "thicknessScale": 1
+    }
+  ]
 };
 
 let config;
@@ -214,7 +540,7 @@ const wallMeter = document.getElementById("wall-meter");
 const fileInput = document.getElementById("file-input");
 const showAllSlotsEl = document.getElementById("showAllSlots");
 const showAxesEl = document.getElementById("showAxes");
-const slotTexturesEl = document.getElementById("slot-textures");
+const texturePickerEl = document.getElementById("texture-picker");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x171410);
@@ -244,13 +570,6 @@ scene.add(fill);
 const world = new THREE.Group();
 scene.add(world);
 
-function textureLabel(path) {
-  return path
-    .replace(/^textures\/tfc\/item\//, "")
-    .replace(/^textures\/tfc\//, "")
-    .replace(/\.png$/, "");
-}
-
 function loadTex(path) {
   if (!path) return Promise.resolve(null);
   if (textureCache.has(path)) return textureCache.get(path);
@@ -279,39 +598,27 @@ async function makeBlock(texPath, x, y, z, fallbackColor) {
   const geo = new THREE.BoxGeometry(1, 1, 1);
   const tex = await loadTex(texPath);
   const mat = tex
-    ? new THREE.MeshStandardMaterial({
-        map: tex,
-        roughness: 0.95,
-        metalness: 0.02,
-      })
-    : new THREE.MeshStandardMaterial({
-        color: fallbackColor,
-        roughness: 0.92,
-        metalness: 0.05,
-      });
+    ? new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0.02 })
+    : new THREE.MeshStandardMaterial({ color: fallbackColor, roughness: 0.92, metalness: 0.05 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x + 0.5, y + 0.5, z + 0.5);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  const edges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 })
+  mesh.add(
+    new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 })
+    )
   );
-  mesh.add(edges);
   return mesh;
 }
 
 async function buildEnvironment() {
-  // Clear previous env meshes except tools (tools managed separately)
-  while (world.children.length) {
-    const child = world.children[0];
-    world.remove(child);
-  }
+  while (world.children.length) world.remove(world.children[0]);
   toolRoots.length = 0;
 
   const wallTex = config.globals.wallTexture;
   const floorTex = config.globals.floorTexture;
-
   world.add(await makeBlock(floorTex, 0, -1, 0, 0x5a4a38));
   world.add(await makeBlock(floorTex, -1, -1, 0, 0x4e4132));
   world.add(await makeBlock(floorTex, 1, -1, 0, 0x4e4132));
@@ -345,21 +652,14 @@ async function buildEnvironment() {
   world.add(grid);
 }
 
-/**
- * Minecraft FIXED generated item: extruded 3D mesh from the TFC sprite
- * (ItemModelGenerator-style). Flat plane fallback if extrude3d is off.
- * Diagonal tool art + uprightTurn (-45 ZP) stands the handle on the floor.
- */
-async function createToolSprite(cat, slot) {
+async function createToolSprite(tool) {
   const root = new THREE.Group();
-  const textures = cat.textures || [];
-  const path = textures[slot % Math.max(textures.length, 1)] || textures[0];
+  const path = tool.texture;
   const tex = await loadTex(path);
-
-  const w = cat.toolWidth || 1;
-  const h = cat.toolLength || 1;
-  const thickness = cat.thicknessScale ?? 1;
-  const useExtrude = cat.extrude3d !== false;
+  const w = tool.toolWidth || 1;
+  const h = tool.toolLength || 1;
+  const thickness = tool.thicknessScale ?? 1;
+  const useExtrude = tool.extrude3d !== false;
 
   let group;
   if (useExtrude && tex && path) {
@@ -389,49 +689,30 @@ async function createToolSprite(cat, slot) {
           metalness: 0.15,
         })
       : new THREE.MeshStandardMaterial({
-          color: new THREE.Color(cat.color || "#888888"),
+          color: 0x888888,
           roughness: 0.6,
           metalness: 0.2,
           side: THREE.DoubleSide,
         });
-    const sprite = new THREE.Mesh(geo, mat);
-    const back = new THREE.Mesh(
-      geo,
-      new THREE.MeshBasicMaterial({
-        color: 0x1a1510,
-        transparent: true,
-        opacity: 0.35,
-        side: THREE.FrontSide,
-        depthWrite: false,
-      })
-    );
-    back.position.z = -0.01;
     group = new THREE.Group();
-    group.add(back);
-    group.add(sprite);
+    group.add(new THREE.Mesh(geo, mat));
   }
 
   root.add(group);
-
   if (config.globals.showAxes) {
-    const axes = new THREE.AxesHelper(0.35);
-    root.add(axes);
-    root.userData.axes = axes;
+    root.add(new THREE.AxesHelper(0.35));
   }
-
-  root.userData.sprite = group;
   root.userData.texturePath = path;
   return root;
 }
 
-function applyLeanPose(root, cat, slot, slotCount, facing = "north") {
-  const lateral = (slot - (slotCount - 1) / 2) * cat.slotSpacing;
+function applyLeanPose(root, tool, slot, slotCount, facing = "north") {
+  const lateral = (slot - (slotCount - 1) / 2) * tool.slotSpacing;
   const yRot = 180 - (FACING_YROT[facing] ?? 180);
 
   const m = new THREE.Matrix4();
   const tmp = new THREE.Matrix4();
   const quat = new THREE.Quaternion();
-
   const mulT = (x, y, z) => m.multiply(tmp.makeTranslation(x, y, z));
   const mulR = (axis, deg) => {
     quat.setFromAxisAngle(axis, THREE.MathUtils.degToRad(deg));
@@ -442,14 +723,14 @@ function applyLeanPose(root, cat, slot, slotCount, facing = "north") {
   m.identity();
   mulT(0.5, 0, 0.5);
   mulR(new THREE.Vector3(0, 1, 0), yRot);
-  mulT(lateral + cat.nudgeX, cat.centerY + cat.nudgeY, cat.wallOffset + cat.nudgeZ);
-  mulR(new THREE.Vector3(1, 0, 0), -cat.leanAngle);
-  if (cat.flipFacing) mulR(new THREE.Vector3(0, 0, 1), cat.flipFacingTurn);
-  if (cat.flatSprite) mulR(new THREE.Vector3(0, 0, 1), cat.uprightTurn);
-  if (cat.extraRotX) mulR(new THREE.Vector3(1, 0, 0), cat.extraRotX);
-  if (cat.extraRotY) mulR(new THREE.Vector3(0, 1, 0), cat.extraRotY);
-  if (cat.extraRotZ) mulR(new THREE.Vector3(0, 0, 1), cat.extraRotZ);
-  mulS(cat.scale);
+  mulT(lateral + tool.nudgeX, tool.centerY + tool.nudgeY, tool.wallOffset + tool.nudgeZ);
+  mulR(new THREE.Vector3(1, 0, 0), -tool.leanAngle);
+  if (tool.flipFacing) mulR(new THREE.Vector3(0, 0, 1), tool.flipFacingTurn);
+  if (tool.flatSprite) mulR(new THREE.Vector3(0, 0, 1), tool.uprightTurn);
+  if (tool.extraRotX) mulR(new THREE.Vector3(1, 0, 0), tool.extraRotX);
+  if (tool.extraRotY) mulR(new THREE.Vector3(0, 1, 0), tool.extraRotY);
+  if (tool.extraRotZ) mulR(new THREE.Vector3(0, 0, 1), tool.extraRotZ);
+  mulS(tool.scale);
 
   root.matrixAutoUpdate = false;
   root.matrix.copy(m);
@@ -471,62 +752,34 @@ async function rebuildTools() {
   }
   toolRoots.length = 0;
 
-  const cat = activeCategory();
-  if (!cat) return;
+  const tool = activeTool();
+  if (!tool) return;
 
   const indices = showAllSlotsEl.checked
     ? [...Array(config.globals.slotCount).keys()]
     : [Math.floor((config.globals.slotCount - 1) / 2)];
 
   for (const slot of indices) {
-    const sprite = await createToolSprite(cat, slot);
-    applyLeanPose(sprite, cat, slot, config.globals.slotCount, config.globals.facing);
+    const sprite = await createToolSprite(tool);
+    applyLeanPose(sprite, tool, slot, config.globals.slotCount, config.globals.facing);
     world.add(sprite);
     toolRoots.push(sprite);
   }
-
-  updateWallMeter(cat);
+  updateWallMeter(tool);
 }
 
-function updateWallMeter(cat) {
-  const z = cat.wallOffset + cat.nudgeZ;
+function updateWallMeter(tool) {
+  const z = tool.wallOffset + tool.nudgeZ;
   const gap = Math.abs(z - -0.5);
   wallMeter.textContent = `wall gap: ${gap.toFixed(3)} · foot z: ${z.toFixed(3)}`;
 }
 
-function activeCategory() {
-  return config.categories.find((c) => c.id === activeId);
+function activeTool() {
+  return config.toolTypes.find((t) => t.id === activeId);
 }
 
-function baselineCategory(id) {
-  return baseline.categories.find((c) => c.id === id);
-}
-
-function selectCategory(id) {
-  activeId = id;
-  [...catList.children].forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.id === id);
-  });
-  const cat = activeCategory();
-  catTitle.textContent = cat.name;
-  catDesc.textContent = `${cat.description}${
-    cat.examples?.length ? `  ·  ${cat.examples.join(", ")}` : ""
-  }`;
-  syncControlsFromCategory(cat);
-  renderSlotTexturePickers(cat);
-  void rebuildTools();
-}
-
-function syncControlsFromCategory(cat) {
-  for (const key of NUMBER_KEYS) {
-    const el = document.getElementById(key);
-    el.value = cat[key];
-    const label = document.querySelector(`.val[data-for="${key}"]`);
-    if (label) label.textContent = formatNum(cat[key]);
-  }
-  for (const key of BOOL_KEYS) {
-    document.getElementById(key).checked = !!cat[key];
-  }
+function baselineTool(id) {
+  return baseline.toolTypes.find((t) => t.id === id);
 }
 
 function formatNum(n) {
@@ -535,46 +788,57 @@ function formatNum(n) {
   return String(Math.round(v * 100) / 100);
 }
 
-function renderSlotTexturePickers(cat) {
-  if (!slotTexturesEl) return;
-  slotTexturesEl.innerHTML = "";
-  const lib = config.textureLibrary || baseline.textureLibrary || [];
-  if (!cat.textures) cat.textures = [];
-  while (cat.textures.length < config.globals.slotCount) {
-    cat.textures.push(cat.textures[0] || lib[0] || "");
+function syncControlsFromTool(tool) {
+  for (const key of NUMBER_KEYS) {
+    const el = document.getElementById(key);
+    el.value = tool[key];
+    const label = document.querySelector(`.val[data-for="${key}"]`);
+    if (label) label.textContent = formatNum(tool[key]);
   }
+  for (const key of BOOL_KEYS) {
+    document.getElementById(key).checked = !!tool[key];
+  }
+  if (texturePickerEl) {
+    texturePickerEl.querySelector("img").src = tool.texture;
+    texturePickerEl.querySelector(".tex-path").textContent = tool.texture.replace(/^textures\/tfc\/item\//, "");
+  }
+}
 
-  for (let i = 0; i < config.globals.slotCount; i++) {
-    const row = document.createElement("div");
-    row.className = "tex-row";
+function selectTool(id) {
+  activeId = id;
+  [...catList.querySelectorAll(".cat-btn")].forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.id === id);
+  });
+  const tool = activeTool();
+  catTitle.textContent = tool.name;
+  catDesc.textContent = `${tool.itemId} · group ${GROUP_LABELS[tool.group] || tool.group}` +
+    (tool.tags?.length ? ` · ${tool.tags.join(", ")}` : "");
+  syncControlsFromTool(tool);
+  void rebuildTools();
+}
 
-    const preview = document.createElement("img");
-    preview.className = "tex-preview";
-    preview.src = cat.textures[i];
-    preview.alt = "";
-    preview.width = 32;
-    preview.height = 32;
-
-    const label = document.createElement("label");
-    label.textContent = `Slot ${i}`;
-
-    const select = document.createElement("select");
-    for (const path of lib) {
-      const opt = document.createElement("option");
-      opt.value = path;
-      opt.textContent = textureLabel(path);
-      if (path === cat.textures[i]) opt.selected = true;
-      select.appendChild(opt);
+function renderToolList() {
+  catList.innerHTML = "";
+  const groups = [];
+  for (const tool of config.toolTypes) {
+    if (!groups.includes(tool.group)) groups.push(tool.group);
+  }
+  for (const group of groups) {
+    const header = document.createElement("div");
+    header.className = "group-header";
+    header.textContent = GROUP_LABELS[group] || group;
+    catList.appendChild(header);
+    for (const tool of config.toolTypes.filter((t) => t.group === group)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cat-btn";
+      btn.dataset.id = tool.id;
+      btn.innerHTML =
+        `<strong><img class="cat-thumb" src="${tool.texture}" alt="" width="20" height="20" />${tool.name}</strong>` +
+        `<span>z=${tool.wallOffset}${tool.flipFacing ? " · flip" : ""}</span>`;
+      btn.addEventListener("click", () => selectTool(tool.id));
+      catList.appendChild(btn);
     }
-    select.addEventListener("change", () => {
-      cat.textures[i] = select.value;
-      preview.src = select.value;
-      rebuildTools();
-      persist();
-    });
-
-    row.append(preview, label, select);
-    slotTexturesEl.appendChild(row);
   }
 }
 
@@ -582,10 +846,10 @@ function bindControls() {
   for (const key of NUMBER_KEYS) {
     const el = document.getElementById(key);
     el.addEventListener("input", () => {
-      const cat = activeCategory();
-      cat[key] = parseFloat(el.value);
+      const tool = activeTool();
+      tool[key] = parseFloat(el.value);
       const label = document.querySelector(`.val[data-for="${key}"]`);
-      if (label) label.textContent = formatNum(cat[key]);
+      if (label) label.textContent = formatNum(tool[key]);
       if (key === "toolLength" || key === "toolWidth" || key === "thicknessScale") rebuildTools();
       else {
         refreshPosesOnly();
@@ -595,7 +859,7 @@ function bindControls() {
   }
   for (const key of BOOL_KEYS) {
     document.getElementById(key).addEventListener("change", (e) => {
-      activeCategory()[key] = e.target.checked;
+      activeTool()[key] = e.target.checked;
       if (key === "extrude3d") rebuildTools();
       else refreshPosesOnly();
       persist();
@@ -614,7 +878,7 @@ function bindControls() {
 }
 
 function refreshPosesOnly() {
-  const cat = activeCategory();
+  const tool = activeTool();
   const indices = showAllSlotsEl.checked
     ? [...Array(config.globals.slotCount).keys()]
     : [Math.floor((config.globals.slotCount - 1) / 2)];
@@ -624,28 +888,10 @@ function refreshPosesOnly() {
     return;
   }
   toolRoots.forEach((root, i) => {
-    applyLeanPose(root, cat, indices[i], config.globals.slotCount, config.globals.facing);
+    applyLeanPose(root, tool, indices[i], config.globals.slotCount, config.globals.facing);
   });
-  updateWallMeter(cat);
+  updateWallMeter(tool);
   persist();
-}
-
-function renderCatList() {
-  catList.innerHTML = "";
-  for (const cat of config.categories) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "cat-btn";
-    btn.dataset.id = cat.id;
-    const thumb = cat.textures?.[0]
-      ? `<img class="cat-thumb" src="${cat.textures[0]}" alt="" width="20" height="20" />`
-      : `<span class="swatch" style="background:${cat.color}"></span>`;
-    btn.innerHTML = `<strong>${thumb}${cat.name}</strong><span>${
-      cat.tags.length ? cat.tags.join(" · ") : "no special tags"
-    } · z=${cat.wallOffset}</span>`;
-    btn.addEventListener("click", () => selectCategory(cat.id));
-    catList.appendChild(btn);
-  }
 }
 
 function persist() {
@@ -656,8 +902,8 @@ function deepClone(o) {
   return JSON.parse(JSON.stringify(o));
 }
 
-function mergeCategory(saved, base) {
-  return { ...deepClone(base), ...saved, textures: saved.textures || base.textures };
+function mergeTool(saved, base) {
+  return { ...deepClone(base), ...saved, texture: saved.texture || base.texture };
 }
 
 async function loadDefaultsFile() {
@@ -673,17 +919,19 @@ async function loadDefaultsFile() {
 async function loadInitial() {
   const saved = localStorage.getItem(STORAGE_KEY);
   baseline = await loadDefaultsFile();
+  // Migrate old category-based saves by ignoring them (v4 key).
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       config = deepClone(baseline);
       config.globals = { ...config.globals, ...(parsed.globals || {}) };
-      config.categories = baseline.categories.map((b) => {
-        const s = (parsed.categories || []).find((c) => c.id === b.id);
-        return s ? mergeCategory(s, b) : deepClone(b);
+      const list = parsed.toolTypes || [];
+      config.toolTypes = baseline.toolTypes.map((b) => {
+        const s = list.find((t) => t.id === b.id);
+        return s ? mergeTool(s, b) : deepClone(b);
       });
-      for (const s of parsed.categories || []) {
-        if (!config.categories.find((c) => c.id === s.id)) config.categories.push(deepClone(s));
+      for (const s of list) {
+        if (!config.toolTypes.find((t) => t.id === s.id)) config.toolTypes.push(deepClone(s));
       }
     } catch {
       config = deepClone(baseline);
@@ -691,45 +939,45 @@ async function loadInitial() {
   } else {
     config = deepClone(baseline);
   }
-  showAllSlotsEl.checked = config.globals.showAllSlots !== false;
+  showAllSlotsEl.checked = !!config.globals.showAllSlots;
   if (showAxesEl) showAxesEl.checked = !!config.globals.showAxes;
-}
-
-function exportJava() {
-  const byId = Object.fromEntries(config.categories.map((c) => [c.id, c]));
-  const d = byId.default;
-  const clear = byId.clear_wall;
-  const closer = byId.closer_wall;
-  const flip = byId.flip_facing;
-
-  const lines = [];
-  lines.push("// Generated by TFC Lean Mesh Visualizer");
-  lines.push("// Paste into LeaningToolRenderer (review before committing).");
-  lines.push(`private static final float LEAN_ANGLE = ${num(d.leanAngle)}f;`);
-  lines.push(`private static final float SLOT_SPACING = ${num(d.slotSpacing)}f;`);
-  lines.push(`private static final float CENTER_Y = ${num(d.centerY)}f;`);
-  lines.push(`private static final float WALL_OFFSET = ${num(d.wallOffset)}f;`);
-  lines.push(`private static final float CLEAR_WALL_OFFSET = ${num(clear.wallOffset)}f;`);
-  lines.push(`private static final float CLOSER_WALL_OFFSET = ${num(closer.wallOffset)}f;`);
-  lines.push(`private static final float SCALE = ${num(d.scale)}f;`);
-  lines.push(`private static final float UPRIGHT_TURN = ${num(d.uprightTurn)}f;`);
-  lines.push(`private static final float FLIP_FACING_TURN = ${num(flip.flipFacingTurn)}f;`);
-  lines.push("");
-  lines.push("// Per-category extras (not in stock renderer — wire up if needed):");
-  for (const c of config.categories) {
-    lines.push(
-      `// ${c.id}: lean=${num(c.leanAngle)} wallZ=${num(c.wallOffset)} y=${num(c.centerY)} scale=${num(c.scale)} ` +
-        `upright=${num(c.uprightTurn)} flip=${c.flipFacing}?${num(c.flipFacingTurn)} ` +
-        `extra=(${num(c.extraRotX)},${num(c.extraRotY)},${num(c.extraRotZ)}) ` +
-        `nudge=(${num(c.nudgeX)},${num(c.nudgeY)},${num(c.nudgeZ)})`
-    );
-  }
-  exportOut.value = lines.join("\n");
 }
 
 function num(v) {
   const n = Number(v);
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 1000) / 1000);
+}
+
+function exportJava() {
+  const byId = Object.fromEntries(config.toolTypes.map((t) => [t.id, t]));
+  const axe = byId.axe;
+  const sword = byId.sword;
+  const knife = byId.knife;
+  const saw = byId.saw;
+
+  const lines = [];
+  lines.push("// Generated by TFC Lean Mesh Visualizer (per tool-type configs)");
+  lines.push("// Shared tag defaults taken from representative types: axe / sword / saw / knife.");
+  lines.push(`private static final float LEAN_ANGLE = ${num(axe.leanAngle)}f;`);
+  lines.push(`private static final float SLOT_SPACING = ${num(axe.slotSpacing)}f;`);
+  lines.push(`private static final float CENTER_Y = ${num(axe.centerY)}f;`);
+  lines.push(`private static final float WALL_OFFSET = ${num(axe.wallOffset)}f;`);
+  lines.push(`private static final float CLEAR_WALL_OFFSET = ${num(sword.wallOffset)}f;`);
+  lines.push(`private static final float CLOSER_WALL_OFFSET = ${num(knife.wallOffset)}f;`);
+  lines.push(`private static final float SCALE = ${num(axe.scale)}f;`);
+  lines.push(`private static final float UPRIGHT_TURN = ${num(axe.uprightTurn)}f;`);
+  lines.push(`private static final float FLIP_FACING_TURN = ${num(saw.flipFacingTurn)}f;`);
+  lines.push("");
+  lines.push("// Per tool-type overrides (wire into renderer / config if needed):");
+  for (const t of config.toolTypes) {
+    lines.push(
+      `// ${t.id}: lean=${num(t.leanAngle)} wallZ=${num(t.wallOffset)} y=${num(t.centerY)} scale=${num(t.scale)} ` +
+        `upright=${num(t.uprightTurn)} flip=${t.flipFacing}?${num(t.flipFacingTurn)} ` +
+        `extra=(${num(t.extraRotX)},${num(t.extraRotY)},${num(t.extraRotZ)}) ` +
+        `nudge=(${num(t.nudgeX)},${num(t.nudgeY)},${num(t.nudgeZ)})`
+    );
+  }
+  exportOut.value = lines.join("\n");
 }
 
 function exportJson() {
@@ -782,18 +1030,18 @@ function animate() {
 }
 
 document.getElementById("btn-reset-cat").addEventListener("click", () => {
-  const b = baselineCategory(activeId);
+  const b = baselineTool(activeId);
   if (!b) return;
-  const idx = config.categories.findIndex((c) => c.id === activeId);
-  config.categories[idx] = deepClone(b);
-  selectCategory(activeId);
+  const idx = config.toolTypes.findIndex((t) => t.id === activeId);
+  config.toolTypes[idx] = deepClone(b);
+  selectTool(activeId);
   persist();
 });
 
 document.getElementById("btn-reset-all").addEventListener("click", () => {
   config = deepClone(baseline);
-  renderCatList();
-  selectCategory(config.categories[0].id);
+  renderToolList();
+  selectTool(config.toolTypes[0].id);
   persist();
 });
 
@@ -802,16 +1050,16 @@ document.getElementById("btn-load").addEventListener("click", () => fileInput.cl
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0];
   if (!file) return;
-  const text = await file.text();
-  const parsed = JSON.parse(text);
+  const parsed = JSON.parse(await file.text());
   config = deepClone(baseline);
   config.globals = { ...config.globals, ...(parsed.globals || {}) };
-  config.categories = (parsed.categories || baseline.categories).map((c) => {
-    const b = baselineCategory(c.id);
-    return b ? mergeCategory(c, b) : deepClone(c);
+  const list = parsed.toolTypes || [];
+  config.toolTypes = (list.length ? list : baseline.toolTypes).map((t) => {
+    const b = baselineTool(t.id);
+    return b ? mergeTool(t, b) : deepClone(t);
   });
-  renderCatList();
-  selectCategory(config.categories[0]?.id || activeId);
+  renderToolList();
+  selectTool(config.toolTypes[0]?.id || activeId);
   persist();
   exportJson();
 });
@@ -830,9 +1078,9 @@ window.addEventListener("resize", onResize);
 
 await loadInitial();
 await buildEnvironment();
-renderCatList();
+renderToolList();
 bindControls();
-selectCategory(config.categories[0].id);
+selectTool(config.toolTypes[0].id);
 onResize();
 animate();
 exportJson();
