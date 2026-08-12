@@ -20,7 +20,10 @@ import net.minecraft.world.level.Level;
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    /** Degrees off vertical, tip toward the wall. */
+    /**
+     * Pose constants match mesh-visualizer/defaults.json (side-view verified).
+     * Degrees off vertical, tip toward the wall.
+     */
     private static final float LEAN_ANGLE = 28f;
     private static final float SLOT_SPACING = 0.2f;
     /** Tool center height; FIXED models are origin-centered. */

@@ -1,0 +1,5 @@
+# Private asset notice
+
+Textures under `textures/tfc/` are copied from **TerraFirmaCraft** (`1.20.x` branch on GitHub) for **private local preview only**.
+
+Do **not** redistribute this folder or publish these assets. The visualizer itself is fine to keep locally beside your mod work.
