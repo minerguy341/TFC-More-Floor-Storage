@@ -27,5 +27,8 @@ logs/
 .DS_Store
 *.log
 
+# Local-only lean pose editor (keep outside the repo / do not commit)
+mesh-visualizer/
+
 # Forge MDK leftovers
 forge*changelog.txt
