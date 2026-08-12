@@ -24,6 +24,7 @@ public class TFCMoreFloorStorage
         ModBlocks.BLOCKS.register(modBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modBus);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, IngotMeshClientConfig.SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ToolLeaningConfig.SPEC);
 
         modBus.addListener(this::onCommonSetup);
 
@@ -35,8 +36,11 @@ public class TFCMoreFloorStorage
 
     private void onCommonSetup(FMLCommonSetupEvent event)
     {
-        event.enqueueWork(ClayPiling::register);
-        LOGGER.info("Registered clay pile interaction for tag {} (capacity {}).", ModTags.PILEABLE_CLAYS.location(), ClayPileBlock.MAX_COUNT);
+        event.enqueueWork(() -> {
+            ClayPiling.register();
+            ModNetwork.register();
+        });
+        LOGGER.info("Registered clay pile ({}) and tool leaning ({}).", ModTags.PILEABLE_CLAYS.location(), ModTags.LEANABLE.location());
     }
 
     private void onClientSetup(FMLClientSetupEvent event)
