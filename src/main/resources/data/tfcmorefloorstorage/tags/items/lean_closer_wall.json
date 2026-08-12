@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#tfc:knives",
+      "required": false
+    },
+    {
+      "id": "#tfc:tuyeres",
+      "required": false
+    }
+  ]
+}

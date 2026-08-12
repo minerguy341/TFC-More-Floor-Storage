@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#tfc:usable_on_tool_rack",
+      "required": false
+    },
+    {
+      "id": "#minecraft:axes",
+      "required": false
+    },
+    {
+      "id": "#minecraft:pickaxes",
+      "required": false
+    },
+    {
+      "id": "#minecraft:shovels",
+      "required": false
+    },
+    {
+      "id": "#minecraft:hoes",
+      "required": false
+    },
+    {
+      "id": "#minecraft:swords",
+      "required": false
+    }
+  ]
+}

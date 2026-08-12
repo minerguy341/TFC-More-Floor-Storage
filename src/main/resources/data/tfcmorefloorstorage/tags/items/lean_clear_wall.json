@@ -1,0 +1,33 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#tfcmorefloorstorage:lean_flip_facing",
+      "required": false
+    },
+    {
+      "id": "#tfc:swords",
+      "required": false
+    },
+    {
+      "id": "#tfc:maces",
+      "required": false
+    },
+    {
+      "id": "#tfc:holds_small_fishing_bait",
+      "required": false
+    },
+    {
+      "id": "minecraft:fishing_rod",
+      "required": false
+    },
+    {
+      "id": "tfc:spindle",
+      "required": false
+    },
+    {
+      "id": "tfc:firestarter",
+      "required": false
+    }
+  ]
+}

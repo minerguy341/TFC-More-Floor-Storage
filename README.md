@@ -20,6 +20,19 @@ Shift-click **pileable clays** to place a dedicated `clay_pile` block (not the m
 
 Mixed clay types in one pile are allowed (like mixed metal ingot piles). Click without shift to take from the top. Air-click knapping is unchanged.
 
+## Tool leaning (from Claude branch)
+
+Aim at the **side of a solid block** with a leanable tool and press TFC’s floor storage key (**V** by default) to prop the tool against the wall (Vintage Story style).
+
+- Tag: `tfcmorefloorstorage:leanable` (includes `#tfc:usable_on_tool_rack` plus vanilla tool tags)
+- Click a leaned tool to take it back
+- **Capacity** matches TFC ground placed items (`tfc-server.toml`):
+  - size ≤ `maxPlacedItemSize` (default Large) → up to **4** tools on one block
+  - larger, up to `maxPlacedLargeItemSize` → **1** tool alone
+- Aim at a wall cell to lean there; neighbouring columns are separate blocks (placement clips through existing leans to the wall)
+- Aim at the same wall cell again to fill extra slots (up to capacity)
+- Toggle / range: `config/tfcmorefloorstorage-server.toml`
+
 ## Metal ingot mesh (optional)
 
 Mixins can still override TFC ingot / double-ingot bar sizes via `config/tfcmorefloorstorage-client.toml`. Defaults match stock TFC. Press **F3+T** after edits.

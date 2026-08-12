@@ -1,6 +1,7 @@
 package com.minerguy341.tfcmorefloorstorage;
 
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.ModelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -14,5 +15,11 @@ public final class ClientEvents
     public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event)
     {
         event.register("clay_pile", ClayPileBlockModel.INSTANCE);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
+    {
+        event.registerBlockEntityRenderer(ModBlockEntities.LEANING_TOOL.get(), context -> new LeaningToolRenderer());
     }
 }
