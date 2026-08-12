@@ -15,35 +15,37 @@ import net.minecraft.world.level.Level;
  * Stands each leaned tool on the floor and tips it into the wall.
  * Local frame: after yaw, {@code -Z} points toward the wall ({@link LeaningToolBlock#FACING}).
  * <p>
+ * Target look: ~45° upright from the default diagonal sprite (handle down, blade up),
+ * strong lean into the wall, feet on the floor, tip against the wall. Sub-quarter-pixel
+ * clipping into floor/wall is acceptable.
+ * <p>
  * Lean ({@code XP}) must run while local {@code X} is still along the wall; a prior {@code ZP}
  * spin remaps that axis and tips tools sideways. Facing/upright spins happen after the lean.
  */
 public class LeaningToolRenderer implements BlockEntityRenderer<LeaningToolBlockEntity>
 {
-    /**
-     * Pose constants match mesh-visualizer/defaults.json (side-view verified).
-     * Degrees off vertical, tip toward the wall.
-     */
-    private static final float LEAN_ANGLE = 28f;
+    /** Degrees off vertical, tip toward the wall — steep diagonal lean. */
+    private static final float LEAN_ANGLE = 40f;
     private static final float SLOT_SPACING = 0.2f;
     /** Tool center height; FIXED models are origin-centered. */
-    private static final float CENTER_Y = 0.42f;
+    private static final float CENTER_Y = 0.36f;
     /**
      * Toward wall (local {@code -Z}). Wall face is at {@code -0.5}.
+     * Seated close enough to touch with only tiny allowed clip.
      */
-    private static final float WALL_OFFSET = -0.34f;
+    private static final float WALL_OFFSET = -0.36f;
     /**
-     * Long tip-heavy tools ({@link ModTags#LEAN_CLEAR_WALL}): ~0.23 block off the wall face.
+     * Long tip-heavy tools ({@link ModTags#LEAN_CLEAR_WALL}): slightly farther from the wall.
      */
-    private static final float CLEAR_WALL_OFFSET = -0.27f;
+    private static final float CLEAR_WALL_OFFSET = -0.30f;
     /**
-     * Knives / tuyeres ({@link ModTags#LEAN_CLOSER_WALL}): 0.05 closer to the wall than clear-wall.
+     * Knives / tuyeres ({@link ModTags#LEAN_CLOSER_WALL}): a bit closer than clear-wall.
      */
-    private static final float CLOSER_WALL_OFFSET = -0.32f;
+    private static final float CLOSER_WALL_OFFSET = -0.34f;
     private static final float SCALE = 0.72f;
     /**
-     * Flat tool sprites are drawn corner-to-corner; this quarter-turn stands the handle on the floor
-     * with the head up (same as Claude's working lean renderer).
+     * Flat tool sprites are drawn corner-to-corner; this ~45° turn stands the handle on the floor
+     * with the head up.
      */
     private static final float UPRIGHT_TURN = -45f;
     /**
